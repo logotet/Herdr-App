@@ -1,0 +1,25 @@
+{
+  "type": "snapshot",
+  "workspaces": [
+    {"workspace_id":"w1","number":1,"label":"Mobile","agent_status":"blocked","focused":false,"pane_count":2,"tab_count":2,"active_tab_id":"w1:t1"},
+    {"workspace_id":"w2","number":2,"label":"Bridge","agent_status":"working","focused":true,"pane_count":1,"tab_count":1,"active_tab_id":"w2:t1"}
+  ],
+  "tabs": [
+    {"tab_id":"w1:t1","workspace_id":"w1","number":1,"label":"copilot","agent_status":"blocked","focused":false,"pane_count":1},
+    {"tab_id":"w1:t2","workspace_id":"w1","number":2,"label":"shell","agent_status":"unknown","focused":false,"pane_count":1},
+    {"tab_id":"w2:t1","workspace_id":"w2","number":1,"label":"claude","agent_status":"working","focused":true,"pane_count":1}
+  ],
+  "panes": [
+    {"pane_id":"w1:p1","workspace_id":"w1","tab_id":"w1:t1","terminal_id":"term_fake1","cwd":"C:\\fake\\mobile","agent":"copilot","agent_status":"blocked","focused":false,"terminal_title":"Fix tests - GitHub Copilot","terminal_title_stripped":"Fix tests","scroll":{"offset_from_bottom":0,"max_offset_from_bottom":20,"viewport_rows":40}},
+    {"pane_id":"w1:p2","workspace_id":"w1","tab_id":"w1:t2","terminal_id":"term_fake2","cwd":"C:\\fake\\mobile","agent_status":"unknown","focused":false,"terminal_title_stripped":"PowerShell"},
+    {"pane_id":"w2:p1","workspace_id":"w2","tab_id":"w2:t1","terminal_id":"term_fake3","cwd":"C:\\fake\\bridge","agent":"claude","agent_status":"working","focused":true,"terminal_title_stripped":"Implement websocket","state_change_seq":7}
+  ],
+  "agents": [
+    {"pane_id":"w2:p1","workspace_id":"w2","tab_id":"w2:t1","terminal_id":"term_fake3","cwd":"C:\\fake\\bridge","agent":"claude","agent_status":"working","focused":true,"terminal_title_stripped":"Implement websocket","state_change_seq":7},
+    {"pane_id":"w1:p1","workspace_id":"w1","tab_id":"w1:t1","terminal_id":"term_fake1","cwd":"C:\\fake\\mobile","agent":"copilot","agent_status":"blocked","focused":false,"terminal_title_stripped":"Fix tests","state_change_seq":8}
+  ],
+  "focused_workspace_id":"w2",
+  "focused_tab_id":"w2:t1",
+  "focused_pane_id":"w2:p1",
+  "previews":{"w1:p1":"Build failed\nNeed approval","w2:p1":"Running tests"}
+}

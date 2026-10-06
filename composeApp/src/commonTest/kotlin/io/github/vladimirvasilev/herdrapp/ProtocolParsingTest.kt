@@ -1,0 +1,37 @@
+package io.github.vladimirvasilev.herdrapp
+
+import io.github.vladimirvasilev.herdrapp.protocol.*
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+
+class ProtocolParsingTest {
+    @Test fun parsesHelloSnapshotFrameResultAgentStatusAndStream() {
+        val hello = assertIs<ServerMessage.Hello>(BridgeJson.parse("""{"type":"hello","protocol":1,"bridge_version":"0.1.0","name":"WORK-PC","herdr":{"version":"0.8","protocol":19,"available":true}}"""))
+        assertEquals("WORK-PC", hello.value.name)
+
+        val snapshotText = readResource("snapshot_fixture.json")
+        val snapshot = assertIs<ServerMessage.Snapshot>(BridgeJson.parse(snapshotText)).value
+        assertEquals(2, snapshot.workspaces.size)
+        assertEquals("C:\\fake\\mobile", snapshot.panes.first { it.paneId == "w1:p1" }.cwd)
+        assertEquals(AgentStatus.BLOCKED, snapshot.agents.first { it.paneId == "w1:p1" }.agentStatus)
+
+        @OptIn(ExperimentalEncodingApi::class)
+        val frame = assertIs<ServerMessage.Frame>(BridgeJson.parse("""{"type":"frame","pane_id":"w1:p1","seq":12,"full":false,"width":80,"height":40,"bytes":"${Base64.Default.encode("hello".encodeToByteArray())}"}""")).value
+        assertEquals(12, frame.seq)
+
+        val result = assertIs<ServerMessage.Result>(BridgeJson.parse("""{"type":"result","id":"r1","ok":false,"error":{"code":"pane_not_found","message":"missing"}}""")).value
+        assertEquals("pane_not_found", result.error?.code)
+
+        val transition = assertIs<ServerMessage.AgentStatus>(BridgeJson.parse("""{"type":"agent_status","pane_id":"w1:p1","workspace_id":"w1","agent":"copilot","from":"working","to":"blocked","title":"Fix tests","workspace_label":"Mobile"}""")).value
+        assertEquals(AgentStatus.BLOCKED, transition.to)
+
+        val stream = assertIs<ServerMessage.Stream>(BridgeJson.parse("""{"type":"stream","pane_id":"w1:p1","mode":"observe","reason":"detached"}""")).value
+        assertEquals(StreamMode.OBSERVE, stream.mode)
+    }
+}
+
+fun readResource(name: String): String = object {}.javaClass.classLoader!!.getResource(name)!!.readText()
