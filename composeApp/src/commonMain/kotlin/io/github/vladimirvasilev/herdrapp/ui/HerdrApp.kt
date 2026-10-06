@@ -106,10 +106,12 @@ private fun HomeScreen(store: HerdrStore, connection: BridgeConnection, hostList
     val panes by store.panes.collectAsState()
     val previews by store.previews.collectAsState()
     val currentHost by connection.currentHost.collectAsState()
+    val herdrStatus by store.herdrStatus.collectAsState()
     val groups = remember(workspaces, agents, panes) { AgentOrganizer.groups(workspaces, agents, panes) }
     val needsYou = remember(agents) { AgentOrganizer.needsYou(agents) }
     Column(Modifier.fillMaxSize()) {
         ConnectionBanner(state, currentHost, onHosts)
+        HerdrUnavailableBanner(herdrStatus)
         if (hostList.isEmpty()) {
             EmptyHosts(onHosts)
         } else {
@@ -131,6 +133,16 @@ private fun HomeScreen(store: HerdrStore, connection: BridgeConnection, hostList
                     if (group.otherPanes.isNotEmpty()) item { OtherPanes(group.otherPanes) }
                 }
             }
+        }
+    }
+}
+
+
+@Composable private fun HerdrUnavailableBanner(status: HerdrInfo?) {
+    if (status?.available == false) {
+        Row(Modifier.fillMaxWidth().background(Color(0xFF5A3418)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("herdr not running on PC", fontWeight = FontWeight.Bold, color = Color(0xFFFFD8A8), modifier = Modifier.weight(1f))
+            Text("Bridge connected", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFD8A8))
         }
     }
 }
@@ -242,6 +254,7 @@ private fun TerminalPagerScreen(initialPage: Int, store: HerdrStore, connection:
 private fun TerminalScreen(agent: AgentInfo, store: HerdrStore, connection: BridgeConnection, settings: SettingsRepository, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val streams by store.streams.collectAsState()
+    val herdrStatus by store.herdrStatus.collectAsState()
     val fontSize by settings.terminalFontSize.collectAsState()
     val stream = streams[agent.paneId]
     val controlling = stream?.mode == StreamMode.CONTROL
@@ -260,6 +273,7 @@ private fun TerminalScreen(agent: AgentInfo, store: HerdrStore, connection: Brid
             if (controlling) Button(onClick = { scope.launch { connection.releaseControl(agent.paneId) } }) { Text("Release") }
             else Button(onClick = { confirmTakeover = true }) { Text("Take control") }
         }
+        HerdrUnavailableBanner(herdrStatus)
         TerminalPane(
             paneId = agent.paneId,
             frames = store.frames,

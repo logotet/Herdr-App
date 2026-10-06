@@ -31,6 +31,12 @@ class ProtocolParsingTest {
 
         val stream = assertIs<ServerMessage.Stream>(BridgeJson.parse("""{"type":"stream","pane_id":"w1:p1","mode":"observe","reason":"detached"}""")).value
         assertEquals(StreamMode.OBSERVE, stream.mode)
+
+        val herdrStatus = assertIs<ServerMessage.HerdrStatus>(BridgeJson.parse("""{"type":"herdr_status","version":"0.8","protocol":19,"available":false,"future":true}""")).value
+        assertEquals(false, herdrStatus.available)
+
+        val unknown = assertIs<ServerMessage.Unknown>(BridgeJson.parse("""{"type":"future_message","payload":42}"""))
+        assertEquals("future_message", unknown.type)
     }
 }
 

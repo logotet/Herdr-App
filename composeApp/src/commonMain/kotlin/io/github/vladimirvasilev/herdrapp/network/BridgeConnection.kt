@@ -75,11 +75,15 @@ class BridgeConnection(
 
     fun handleIncomingText(text: String) {
         when (val message = BridgeJson.parse(text)) {
-            is ServerMessage.Hello -> store.setConnectionState(ConnectionState.Connected(message.value.name))
+            is ServerMessage.Hello -> {
+                store.setConnectionState(ConnectionState.Connected(message.value.name))
+                store.setHerdrStatus(message.value.herdr)
+            }
             is ServerMessage.Snapshot -> store.replace(message.value)
             is ServerMessage.AgentStatus -> store.onAgentStatus(message.value)
             is ServerMessage.Frame -> store.onFrame(message.value)
             is ServerMessage.Stream -> store.onStream(message.value)
+            is ServerMessage.HerdrStatus -> store.setHerdrStatus(message.value.toInfo())
             is ServerMessage.Result -> tracker.complete(message.value)
             is ServerMessage.Pong -> tracker.complete(message.value)
             is ServerMessage.Unknown -> Unit

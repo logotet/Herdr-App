@@ -17,6 +17,16 @@ data class BridgeHello(
 data class HerdrInfo(val version: String? = null, val protocol: Int? = null, val available: Boolean = false)
 
 @Serializable
+data class HerdrStatusMessage(
+    val type: String = "herdr_status",
+    val version: String? = null,
+    val protocol: Int? = null,
+    val available: Boolean = false
+) {
+    fun toInfo(): HerdrInfo = HerdrInfo(version = version, protocol = protocol, available = available)
+}
+
+@Serializable
 data class BridgeSnapshot(
     val type: String = "snapshot",
     val workspaces: List<WorkspaceInfo> = emptyList(),
@@ -159,6 +169,19 @@ data class BridgeError(val code: String, val message: String? = null)
 data class PongMessage(val type: String = "pong", val id: String? = null)
 
 @Serializable
+data class PaneReadResult(
+    val type: String = "pane_read",
+    val read: PaneReadPayload
+)
+
+@Serializable
+data class PaneReadPayload(
+    val text: String,
+    @SerialName("pane_id") val paneId: String,
+    val truncated: Boolean = false
+)
+
+@Serializable
 data class PingRequest(val type: String = "ping", val id: String? = null)
 @Serializable
 data class RefreshRequest(val type: String = "refresh", val id: String? = null)
@@ -190,6 +213,7 @@ sealed interface ServerMessage {
     data class AgentStatus(val value: AgentStatusTransition) : ServerMessage
     data class Frame(val value: TerminalFrame) : ServerMessage
     data class Stream(val value: StreamState) : ServerMessage
+    data class HerdrStatus(val value: HerdrStatusMessage) : ServerMessage
     data class Result(val value: BridgeResultMessage) : ServerMessage
     data class Pong(val value: PongMessage) : ServerMessage
     data class Unknown(val type: String, val raw: JsonElement) : ServerMessage

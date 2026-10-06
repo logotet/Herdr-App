@@ -25,10 +25,13 @@ class HerdrStore {
     val agentStatusTransitions: SharedFlow<AgentStatusTransition> = _agentTransitions.asSharedFlow()
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+    private val _herdrStatus = MutableStateFlow<HerdrInfo?>(null)
+    val herdrStatus: StateFlow<HerdrInfo?> = _herdrStatus.asStateFlow()
     private val _streams = MutableStateFlow<Map<String, StreamState>>(emptyMap())
     val streams: StateFlow<Map<String, StreamState>> = _streams.asStateFlow()
 
     fun setConnectionState(state: ConnectionState) { _connectionState.value = state }
+    fun setHerdrStatus(status: HerdrInfo?) { _herdrStatus.value = status }
 
     fun replace(snapshot: BridgeSnapshot) {
         _workspaces.value = snapshot.workspaces.sortedBy { it.number }
