@@ -1,3 +1,8 @@
+/*
+ * Vendored from termux/termux-app (Apache License 2.0), commit 8629e63.
+ * Modified for Herdr App: RemoteScrollListener hook in doScroll(), and onCheckIsTextEditor()
+ * follows TerminalSession#isInputEnabled().
+ */
 package com.termux.view;
 
 import android.annotation.SuppressLint;
@@ -271,6 +276,19 @@ public final class TerminalView extends View {
         this.mClient = client;
     }
 
+    /** Herdr App: receives scroll gestures so they can be forwarded to the remote pane. */
+    public interface RemoteScrollListener {
+        /** @param rowsDown negative to scroll up (back in history), positive to scroll down. */
+        void onRemoteScroll(int rowsDown);
+    }
+
+    private RemoteScrollListener mRemoteScrollListener;
+
+    /** Herdr App: when set, scroll gestures are forwarded here instead of scrolling the local transcript. */
+    public void setRemoteScrollListener(RemoteScrollListener listener) {
+        mRemoteScrollListener = listener;
+    }
+
     /**
      * Sets whether terminal view key logging is enabled or not.
      *
@@ -525,7 +543,8 @@ public final class TerminalView extends View {
 
     @Override
     public boolean onCheckIsTextEditor() {
-        return true;
+        // Herdr App: only act as a text editor (show the keyboard) while the remote pane accepts input.
+        return mTermSession != null && mTermSession.isInputEnabled();
     }
 
     @Override
@@ -573,6 +592,10 @@ public final class TerminalView extends View {
 
     /** Perform a scroll, either from dragging the screen or by scrolling a mouse wheel. */
     void doScroll(MotionEvent event, int rowsDown) {
+        if (mRemoteScrollListener != null && !mEmulator.isMouseTrackingActive()) {
+            if (rowsDown != 0) mRemoteScrollListener.onRemoteScroll(rowsDown);
+            return;
+        }
         boolean up = rowsDown < 0;
         int amount = Math.abs(rowsDown);
         for (int i = 0; i < amount; i++) {

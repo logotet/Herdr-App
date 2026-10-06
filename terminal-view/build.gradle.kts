@@ -13,5 +13,5 @@ android {
 
 dependencies {
     api(project(":terminal-emulator"))
-    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.annotation)
 }

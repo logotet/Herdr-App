@@ -13,8 +13,8 @@ The Android app id is `io.github.vladimirvasilev.herdrapp`; minSdk is 34.
 ## Module layout
 
 - `composeApp`: Kotlin Multiplatform app module with Android target, shared protocol models, bridge connection/state, host pairing, ViewModels/state holders, and Compose UI.
-- `terminal-emulator`: Apache-2.0 Android library module adapted for remote byte streams.
-- `terminal-view`: Apache-2.0 Android library module containing a remote terminal session and Android `View` used from Compose.
+- `terminal-emulator`: the Termux VT emulator (Apache-2.0, vendored), with `TerminalSession` rewritten to be fed by herdr frames from the bridge instead of a local PTY.
+- `terminal-view`: the Termux `TerminalView` Android `View` (Apache-2.0, vendored), hosted in Compose via `AndroidView` in `TerminalPane.android.kt`.
 
 ## Pairing
 
@@ -28,4 +28,4 @@ Tokens are stored locally and never logged.
 
 ## Terminal attribution
 
-The terminal modules follow Termux's Apache-2.0 terminal module packaging and are adapted for a remote bridge stream instead of spawning a local PTY/JNI subprocess. The upstream project is https://github.com/termux/termux-app (`terminal-emulator` and `terminal-view`). License headers and this attribution are retained for the vendored/adapted sources.
+`terminal-emulator` and `terminal-view` are vendored from [termux/termux-app](https://github.com/termux/termux-app) at commit `8629e63`. Upstream licenses these two modules under the Apache License 2.0; the rest of termux-app is GPLv3 and is not used. The sources are kept in Java and as close to upstream as possible, so upstream fixes can be diffed in. Each module's `README.md` lists the Herdr-specific changes: the remote-backed `TerminalSession`, the removed JNI/PTY code, and two small `TerminalView` hooks. The upstream emulator unit tests are included and run with `testDebugUnitTest`.

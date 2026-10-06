@@ -9,4 +9,13 @@ android {
     defaultConfig {
         minSdk = 34
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.annotation)
+    testImplementation(libs.junit)
 }

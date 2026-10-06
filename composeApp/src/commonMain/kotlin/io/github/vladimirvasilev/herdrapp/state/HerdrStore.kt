@@ -19,7 +19,7 @@ class HerdrStore {
     val agents: StateFlow<List<AgentInfo>> = _agents.asStateFlow()
     private val _previews = MutableStateFlow<Map<String, String>>(emptyMap())
     val previews: StateFlow<Map<String, String>> = _previews.asStateFlow()
-    private val _frames = MutableSharedFlow<TerminalFrame>(extraBufferCapacity = 128)
+    private val _frames = MutableSharedFlow<TerminalFrame>(extraBufferCapacity = 2048)
     val frames: SharedFlow<TerminalFrame> = _frames.asSharedFlow()
     private val _agentTransitions = MutableSharedFlow<AgentStatusTransition>(extraBufferCapacity = 32)
     val agentStatusTransitions: SharedFlow<AgentStatusTransition> = _agentTransitions.asSharedFlow()
