@@ -136,6 +136,28 @@ class BridgeConnection(
         return call("pane.send_text", params)
     }
 
+    /** Types [text] into the pane and presses Enter in one herdr call; works without control. */
+    suspend fun submitPrompt(paneId: String, text: String): RequestOutcome {
+        val params = buildJsonObject {
+            put("pane_id", paneId)
+            if (text.isNotEmpty()) put("text", text)
+            put("keys", kotlinx.serialization.json.JsonArray(listOf(kotlinx.serialization.json.JsonPrimitive("enter"))))
+        }
+        return call("pane.send_input", params)
+    }
+
+    /** The pane's recent output (scrollback + screen) as ANSI text with soft-wrapped lines joined. */
+    suspend fun readHistory(paneId: String, lines: Int = 1000): RequestOutcome {
+        val params = buildJsonObject {
+            put("pane_id", paneId)
+            put("source", "recent_unwrapped")
+            put("format", "ansi")
+            put("strip_ansi", false)
+            put("lines", lines)
+        }
+        return call("pane.read", params)
+    }
+
     suspend fun call(method: String, params: JsonElement): RequestOutcome = request { id -> BridgeJson.encode(CallRequest(id = id, method = method, params = params)) }
 
     private suspend fun request(timeoutMillis: Long = 10_000L, body: (String) -> String): RequestOutcome {

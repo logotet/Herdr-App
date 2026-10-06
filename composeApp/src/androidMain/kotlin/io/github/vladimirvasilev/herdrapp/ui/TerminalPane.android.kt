@@ -30,6 +30,9 @@ import kotlin.math.roundToInt
 
 private const val TAG = "HerdrTerminal"
 private const val TRANSCRIPT_ROWS = 2000
+// herdr returns at most 1000 rows; rewrapping to the narrower phone width multiplies them.
+private const val HISTORY_TRANSCRIPT_ROWS = 6000
+private const val HIDE_CURSOR = "\u001b[?25l"
 private const val MIN_FONT_SP = 8f
 private const val MAX_FONT_SP = 28f
 
@@ -40,15 +43,18 @@ actual fun TerminalPane(
     frames: Flow<TerminalFrame>,
     controlling: Boolean,
     fontSizeSp: Float,
+    history: String?,
     onInput: (ByteArray) -> Unit,
     onResize: (cols: Int, rows: Int) -> Unit,
-    onScrollLines: (lines: Int) -> Unit,
+    onScrollBack: () -> Unit,
+    onExitHistory: () -> Unit,
     onFontSizeChanged: (Float) -> Unit,
     modifier: Modifier,
 ) {
     val currentOnInput = rememberUpdatedState(onInput)
     val currentOnResize = rememberUpdatedState(onResize)
-    val currentOnScroll = rememberUpdatedState(onScrollLines)
+    val currentOnScrollBack = rememberUpdatedState(onScrollBack)
+    val currentOnExitHistory = rememberUpdatedState(onExitHistory)
     val currentOnFont = rememberUpdatedState(onFontSizeChanged)
     val currentFont = rememberUpdatedState(fontSizeSp)
     val currentControlling = rememberUpdatedState(controlling)
@@ -72,16 +78,21 @@ actual fun TerminalPane(
                 isFocusableInTouchMode = true
                 keepScreenOn = true
                 bridge.view = this
+                bridge.liveScrollListener = TerminalView.RemoteScrollListener { rowsDown ->
+                    if (rowsDown < 0) currentOnScrollBack.value()
+                }
+                bridge.exitHistory = Runnable { currentOnExitHistory.value() }
                 setTerminalViewClient(bridge)
                 bridge.applyFontSize(this, fontSizeSp)
                 attachSession(bridge.session)
-                setRemoteScrollListener { rowsDown -> currentOnScroll.value(-rowsDown) }
+                setRemoteScrollListener(bridge.liveScrollListener)
             }
         },
         update = { view ->
             bridge.view = view
             bridge.applyFontSize(view, fontSizeSp)
             bridge.setControlling(view, controlling)
+            bridge.showHistory(view, history)
         },
         onRelease = { view ->
             bridge.hideKeyboard(view)
@@ -103,9 +114,12 @@ private class RemoteTerminalBridge(
 ) : TerminalSessionClient, TerminalViewClient {
 
     var view: TerminalView? = null
+    var liveScrollListener: TerminalView.RemoteScrollListener? = null
+    var exitHistory: Runnable? = null
     private var appliedFontSp = -1f
     private var lastSentSize: Pair<Int, Int>? = null
     private var inputEnabled = false
+    private var historyText: String? = null
 
     val session = TerminalSession(TRANSCRIPT_ROWS, this, object : TerminalSession.RemoteIO {
         override fun onWrite(data: ByteArray) = onInput.value(data)
@@ -133,6 +147,31 @@ private class RemoteTerminalBridge(
         imm(view.context)?.restartInput(view)
     }
 
+    /**
+     * History mode: shows [text] (herdr scrollback as ANSI) in a local, input-less session sized
+     * to the view, so long lines rewrap to the phone width and scrolling never touches the PC.
+     * The live session keeps receiving frames in the background; null switches back to it.
+     */
+    fun showHistory(view: TerminalView, text: String?) {
+        if (text == historyText) return
+        historyText = text
+        if (text == null) {
+            view.setScrollPastBottomListener(null)
+            view.attachSession(session)
+            view.setRemoteScrollListener(liveScrollListener)
+            view.onScreenUpdated()
+            return
+        }
+        hideKeyboard(view)
+        val history = TerminalSession(HISTORY_TRANSCRIPT_ROWS, this, null)
+        view.setRemoteScrollListener(null)
+        view.attachSession(history)
+        history.appendRemote((text + HIDE_CURSOR).encodeToByteArray(), 0, 0)
+        view.setScrollPastBottomListener(exitHistory)
+    }
+
+    private val inHistory get() = historyText != null
+
     fun hideKeyboard(view: TerminalView) {
         imm(view.context)?.hideSoftInputFromWindow(view.windowToken, 0)
     }
@@ -147,7 +186,9 @@ private class RemoteTerminalBridge(
     // --- TerminalSessionClient ---
 
     override fun onTextChanged(changedSession: TerminalSession) {
-        view?.onScreenUpdated()
+        // Live frames keep arriving while history is shown; redrawing would snap history to the bottom.
+        val v = view ?: return
+        if (v.currentSession === changedSession) v.onScreenUpdated()
     }
 
     override fun onTitleChanged(changedSession: TerminalSession) = Unit
@@ -162,7 +203,7 @@ private class RemoteTerminalBridge(
 
     override fun onPasteTextFromClipboard(session: TerminalSession?) {
         val ctx = view?.context ?: return
-        if (!controlling.value) return
+        if (!controlling.value || inHistory) return
         val clip = ctx.getSystemService(ClipboardManager::class.java)?.primaryClip ?: return
         if (clip.itemCount == 0) return
         val text = clip.getItemAt(0).coerceToText(ctx)?.toString().orEmpty()
@@ -191,7 +232,7 @@ private class RemoteTerminalBridge(
 
     override fun onSingleTapUp(e: MotionEvent) {
         val v = view ?: return
-        if (controlling.value) showKeyboard(v)
+        if (controlling.value && !inHistory) showKeyboard(v)
     }
 
     override fun shouldBackButtonBeMappedToEscape() = false

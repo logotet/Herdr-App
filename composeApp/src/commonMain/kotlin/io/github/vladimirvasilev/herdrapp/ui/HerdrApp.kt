@@ -11,6 +11,23 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
+import io.github.vladimirvasilev.herdrapp.network.RequestOutcome
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -249,13 +266,27 @@ private fun TerminalPagerScreen(initialPage: Int, store: HerdrStore, connection:
     val agents by store.agents.collectAsState()
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, (agents.size - 1).coerceAtLeast(0)), pageCount = { agents.size.coerceAtLeast(1) })
     if (agents.isEmpty()) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { TextButton(onClick = onBack) { Text("No agents. Back") } }; return }
+    val drafts = remember { mutableStateMapOf<String, TextFieldValue>() }
     HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-        TerminalScreen(agent = agents[page.coerceAtMost(agents.lastIndex)], store = store, connection = connection, settings = settings, onBack = onBack)
+        val agent = agents[page.coerceAtMost(agents.lastIndex)]
+        TerminalScreen(
+            agent = agent, store = store, connection = connection, settings = settings, onBack = onBack,
+            draft = drafts[agent.paneId] ?: TextFieldValue(""),
+            onDraftChange = { drafts[agent.paneId] = it },
+        )
     }
 }
 
 @Composable
-private fun TerminalScreen(agent: AgentInfo, store: HerdrStore, connection: BridgeConnection, settings: SettingsRepository, onBack: () -> Unit) {
+private fun TerminalScreen(
+    agent: AgentInfo,
+    store: HerdrStore,
+    connection: BridgeConnection,
+    settings: SettingsRepository,
+    onBack: () -> Unit,
+    draft: TextFieldValue,
+    onDraftChange: (TextFieldValue) -> Unit,
+) {
     val scope = rememberCoroutineScope()
     val streams by store.streams.collectAsState()
     val herdrStatus by store.herdrStatus.collectAsState()
@@ -267,6 +298,46 @@ private fun TerminalScreen(agent: AgentInfo, store: HerdrStore, connection: Brid
     // because re-opening would restart observe mode and drop control.
     var streamOpened by remember(agent.paneId) { mutableStateOf(false) }
     var confirmTakeover by remember { mutableStateOf(false) }
+    // Non-null while the local scrollback view is shown instead of the live stream.
+    var history by remember(agent.paneId) { mutableStateOf<String?>(null) }
+    var historyLoading by remember(agent.paneId) { mutableStateOf(false) }
+    var noScrollbackAt by remember(agent.paneId) { mutableStateOf<TimeSource.Monotonic.ValueTimeMark?>(null) }
+    var notice by remember(agent.paneId) { mutableStateOf<String?>(null) }
+    var sending by remember(agent.paneId) { mutableStateOf(false) }
+
+    LaunchedEffect(notice) { if (notice != null) { delay(2_500); notice = null } }
+
+    fun loadHistory() {
+        if (history != null || historyLoading) return
+        if (noScrollbackAt?.let { it.elapsedNow() < 5.seconds } == true) return
+        historyLoading = true
+        scope.launch {
+            when (val outcome = connection.readHistory(agent.paneId)) {
+                is RequestOutcome.Success -> {
+                    val h = parsePaneRead(outcome.data)
+                    if (h == null || h.lineCount <= colsRows.second) {
+                        noScrollbackAt = TimeSource.Monotonic.markNow()
+                        notice = "No scrollback here (full-screen app). Try PgUp/PgDn."
+                    } else history = h.text
+                }
+                is RequestOutcome.Failure -> notice = "History: ${outcome.error.message}"
+            }
+            historyLoading = false
+        }
+    }
+
+    fun submit() {
+        if (sending) return
+        val text = normalizePrompt(draft.text)
+        sending = true
+        scope.launch {
+            when (val outcome = connection.submitPrompt(agent.paneId, text)) {
+                is RequestOutcome.Success -> { onDraftChange(TextFieldValue("")); history = null }
+                is RequestOutcome.Failure -> notice = "Send failed: ${outcome.error.message}"
+            }
+            sending = false
+        }
+    }
 
     DisposableEffect(agent.paneId) { onDispose { scope.launch { connection.closeStream(agent.paneId) } } }
 
@@ -280,25 +351,36 @@ private fun TerminalScreen(agent: AgentInfo, store: HerdrStore, connection: Brid
             else Button(onClick = { confirmTakeover = true }) { Text("Take control") }
         }
         HerdrUnavailableBanner(herdrStatus)
-        TerminalPane(
-            paneId = agent.paneId,
-            frames = store.frames,
-            controlling = controlling,
-            fontSizeSp = fontSize,
-            onInput = { bytes -> if (controlling) scope.launch { connection.inputBytes(agent.paneId, bytes) } },
-            onResize = { c, r ->
-                colsRows = c to r
-                if (!streamOpened) {
-                    streamOpened = true
-                    scope.launch { connection.openStream(agent.paneId, c, r) }
-                } else {
-                    scope.launch { connection.resize(agent.paneId, c, r) }
-                }
-            },
-            onScrollLines = { lines -> if (controlling) scope.launch { connection.scroll(agent.paneId, if (lines > 0) ScrollDirection.UP else ScrollDirection.DOWN, kotlin.math.abs(lines)) } },
-            onFontSizeChanged = { scope.launch { settings.setTerminalFontSize(it) } },
-            modifier = Modifier.fillMaxWidth().weight(1f)
-        )
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+            TerminalPane(
+                paneId = agent.paneId,
+                frames = store.frames,
+                controlling = controlling,
+                fontSizeSp = fontSize,
+                history = history,
+                onInput = { bytes -> if (controlling) scope.launch { connection.inputBytes(agent.paneId, bytes) } },
+                onResize = { c, r ->
+                    colsRows = c to r
+                    if (!streamOpened) {
+                        streamOpened = true
+                        scope.launch { connection.openStream(agent.paneId, c, r) }
+                    } else {
+                        scope.launch { connection.resize(agent.paneId, c, r) }
+                    }
+                },
+                onScrollBack = { loadHistory() },
+                onExitHistory = { history = null },
+                onFontSizeChanged = { scope.launch { settings.setTerminalFontSize(it) } },
+                modifier = Modifier.fillMaxSize()
+            )
+            if (history != null) {
+                Button(onClick = { history = null }, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)) { Text("↓ Live") }
+                Text("History", color = Color.Black, style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color(0xFFF9E2AF), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 2.dp))
+            }
+            if (historyLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
+            notice?.let { Text(it, color = Color.White, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp).background(Color(0xE6313244), RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 8.dp)) }
+        }
+        PromptBar(value = draft, onValueChange = onDraftChange, sending = sending, onSend = { submit() })
         ExtraKeysBar(controlling = controlling, onKey = { spec ->
             scope.launch {
                 when (spec) {
@@ -313,6 +395,44 @@ private fun TerminalScreen(agent: AgentInfo, store: HerdrStore, connection: Brid
 
 
 private sealed interface KeySpec { data class Bytes(val bytes: ByteArray, val textFallback: String) : KeySpec; data class HerdrKey(val key: String) : KeySpec }
+
+/**
+ * Native prompt box: regular keyboard features (autocorrect, swipe, voice, paste). Enter sends;
+ * Shift+Enter (hardware) or a long-press on Send inserts a new line; pasted newlines are kept.
+ * Sending with an empty box just presses Enter in the pane.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PromptBar(value: TextFieldValue, onValueChange: (TextFieldValue) -> Unit, sending: Boolean, onSend: () -> Unit) {
+    fun insertNewline() {
+        val start = minOf(value.selection.start, value.selection.end)
+        val end = maxOf(value.selection.start, value.selection.end)
+        val text = value.text.replaceRange(start, end, "\n")
+        onValueChange(TextFieldValue(text, TextRange(start + 1)))
+    }
+    Row(Modifier.fillMaxWidth().background(Color(0xFF181825)).padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = { new -> if (isEnterPress(value.text, new.text)) onSend() else onValueChange(new) },
+            modifier = Modifier.weight(1f).onPreviewKeyEvent { e ->
+                if (e.key != Key.Enter && e.key != Key.NumPadEnter) return@onPreviewKeyEvent false
+                if (e.type == KeyEventType.KeyDown) { if (e.isShiftPressed) insertNewline() else onSend() }
+                true
+            },
+            placeholder = { Text("Message agent…") },
+            maxLines = 6,
+            textStyle = MaterialTheme.typography.bodyMedium,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, autoCorrectEnabled = true, imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { onSend() }),
+        )
+        Spacer(Modifier.width(6.dp))
+        Box(
+            Modifier.size(48.dp).background(if (sending) Color.Gray else MaterialTheme.colorScheme.primary, CircleShape)
+                .combinedClickable(enabled = !sending, onClick = onSend, onLongClick = { insertNewline() }),
+            contentAlignment = Alignment.Center,
+        ) { Text("➤", color = Color.Black, style = MaterialTheme.typography.titleMedium) }
+    }
+}
 
 @Composable private fun ExtraKeysBar(controlling: Boolean, onKey: (KeySpec) -> Unit) {
     var ctrl by remember { mutableStateOf(false) }

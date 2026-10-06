@@ -10,6 +10,12 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'; .\gradlew.bat asse
 
 The Android app id is `io.github.vladimirvasilev.herdrapp`; minSdk is 34.
 
+## Using a pane
+
+- **Prompt box** (always under the pane): uses the normal phone keyboard (autocorrect, swipe, voice, paste). Enter or the ➤ button sends the text plus Enter to the pane through herdr `pane.send_input`. This works without taking control, so the PC pane is never resized. To add a new line, long-press ➤ or use Shift+Enter on a hardware keyboard. Pasted multi-line text arrives as one prompt in Claude Code and Copilot CLI. Sending an empty box just presses Enter. Each pane keeps its own draft while you swipe between agents.
+- **Scrolling**: swipe down on the pane to open **History**. The app loads the pane's recent output with herdr `pane.read` (`recent_unwrapped`, ANSI, up to 1000 rows), so lines re-wrap to the phone width. You scroll it locally, and the PC view never moves. Long-press selects text to copy. Tap **↓ Live**, keep scrolling down past the end, or send a prompt to return to the live stream. Full-screen apps (for example Copilot CLI) keep no herdr scrollback; use PgUp/PgDn there.
+- **Take control**: raw terminal keyboard for TUI keys. This resizes the real PC pane while you hold control.
+
 ## Module layout
 
 - `composeApp`: Kotlin Multiplatform app module with Android target, shared protocol models, bridge connection/state, host pairing, ViewModels/state holders, and Compose UI.
@@ -39,4 +45,4 @@ printed QR. This works only while the phone is plugged in.
 
 ## Terminal attribution
 
-`terminal-emulator` and `terminal-view` are vendored from [termux/termux-app](https://github.com/termux/termux-app) at commit `8629e63`. Upstream licenses these two modules under the Apache License 2.0; the rest of termux-app is GPLv3 and is not used. The sources are kept in Java and as close to upstream as possible, so upstream fixes can be diffed in. Each module's `README.md` lists the Herdr-specific changes: the remote-backed `TerminalSession`, the removed JNI/PTY code, and two small `TerminalView` hooks. The upstream emulator unit tests are included and run with `testDebugUnitTest`.
+`terminal-emulator` and `terminal-view` are vendored from [termux/termux-app](https://github.com/termux/termux-app) at commit `8629e63`. Upstream licenses these two modules under the Apache License 2.0; the rest of termux-app is GPLv3 and is not used. The sources are kept in Java and as close to upstream as possible, so upstream fixes can be diffed in. Each module's `README.md` lists the Herdr-specific changes: the remote-backed `TerminalSession`, the removed JNI/PTY code, and small `TerminalView` scroll hooks. The upstream emulator unit tests are included and run with `testDebugUnitTest`.

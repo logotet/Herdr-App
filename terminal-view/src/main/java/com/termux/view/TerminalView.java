@@ -1,7 +1,7 @@
 /*
  * Vendored from termux/termux-app (Apache License 2.0), commit 8629e63.
- * Modified for Herdr App: RemoteScrollListener hook in doScroll(), and onCheckIsTextEditor()
- * follows TerminalSession#isInputEnabled().
+ * Modified for Herdr App: RemoteScrollListener and ScrollPastBottomListener hooks in doScroll(),
+ * and onCheckIsTextEditor() follows TerminalSession#isInputEnabled().
  */
 package com.termux.view;
 
@@ -287,6 +287,13 @@ public final class TerminalView extends View {
     /** Herdr App: when set, scroll gestures are forwarded here instead of scrolling the local transcript. */
     public void setRemoteScrollListener(RemoteScrollListener listener) {
         mRemoteScrollListener = listener;
+    }
+
+    private Runnable mScrollPastBottomListener;
+
+    /** Herdr App: called when the user keeps scrolling down while the local transcript is already at the bottom. */
+    public void setScrollPastBottomListener(Runnable listener) {
+        mScrollPastBottomListener = listener;
     }
 
     /**
@@ -597,6 +604,11 @@ public final class TerminalView extends View {
             return;
         }
         boolean up = rowsDown < 0;
+        if (!up && rowsDown != 0 && mTopRow == 0 && mScrollPastBottomListener != null
+            && !mEmulator.isMouseTrackingActive() && !mEmulator.isAlternateBufferActive()) {
+            mScrollPastBottomListener.run();
+            return;
+        }
         int amount = Math.abs(rowsDown);
         for (int i = 0; i < amount; i++) {
             if (mEmulator.isMouseTrackingActive()) {

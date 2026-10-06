@@ -5,5 +5,6 @@ at commit `8629e63`. These modules are licensed under the **Apache License 2.0**
 upstream `LICENSE.md` exception for `terminal-emulator` and `terminal-view`). The rest of termux-app is GPLv3 and is not used.
 
 Modifications for Herdr App (`TerminalView.java` only):
-- `setRemoteScrollListener()`: scroll gestures go to the remote pane instead of the local transcript.
+- `setRemoteScrollListener()`: scroll gestures go to the app instead of the local transcript (the live view uses this to open history).
+- `setScrollPastBottomListener()`: called when the user keeps scrolling down at the bottom of the local transcript (leaves history).
 - `onCheckIsTextEditor()` returns true only while the session accepts input (control mode).

@@ -11,9 +11,11 @@ expect fun TerminalPane(
     frames: Flow<TerminalFrame>,
     controlling: Boolean,
     fontSizeSp: Float,
+    history: String?,
     onInput: (ByteArray) -> Unit,
     onResize: (cols: Int, rows: Int) -> Unit,
-    onScrollLines: (lines: Int) -> Unit,
+    onScrollBack: () -> Unit,
+    onExitHistory: () -> Unit,
     onFontSizeChanged: (Float) -> Unit,
     modifier: Modifier = Modifier,
 )
