@@ -64,6 +64,9 @@ fun HerdrApp(
             if (current == null && hostList.isNotEmpty()) connection.connect(hostList.first())
         }
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            // Edge-to-edge: keep content clear of the status/navigation bars and the keyboard,
+            // so the extra-keys bar sits above the IME and the terminal shrinks to fit.
+            Box(Modifier.fillMaxSize().safeDrawingPadding()) {
             when (val s = screen) {
                 Screen.Home -> HomeScreen(store, connection, hostList, onOpen = { paneId ->
                     val ordered = store.agents.value
@@ -72,6 +75,7 @@ fun HerdrApp(
                 }, onHosts = { screen = Screen.Hosts }, onRefresh = { scope.launch { connection.refresh() } })
                 Screen.Hosts -> HostScreen(hostList, onBack = { screen = Screen.Home }, onSave = { scope.launch { hosts.upsert(it); connection.connect(it); screen = Screen.Home } }, onSelect = { connection.connect(it); screen = Screen.Home }, onDelete = { scope.launch { hosts.delete(it.id) } })
                 is Screen.Terminal -> TerminalPagerScreen(s.initialPage, store, connection, settings, onBack = { screen = Screen.Home })
+            }
             }
         }
     }
