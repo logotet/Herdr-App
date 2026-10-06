@@ -263,9 +263,11 @@ private fun TerminalScreen(agent: AgentInfo, store: HerdrStore, connection: Brid
     val stream = streams[agent.paneId]
     val controlling = stream?.mode == StreamMode.CONTROL
     var colsRows by remember(agent.paneId) { mutableStateOf(80 to 24) }
+    // The stream opens once the view has measured its grid; later size changes only resize it,
+    // because re-opening would restart observe mode and drop control.
+    var streamOpened by remember(agent.paneId) { mutableStateOf(false) }
     var confirmTakeover by remember { mutableStateOf(false) }
 
-    LaunchedEffect(agent.paneId, colsRows) { connection.openStream(agent.paneId, colsRows.first, colsRows.second) }
     DisposableEffect(agent.paneId) { onDispose { scope.launch { connection.closeStream(agent.paneId) } } }
 
     Column(Modifier.fillMaxSize()) {
@@ -284,7 +286,15 @@ private fun TerminalScreen(agent: AgentInfo, store: HerdrStore, connection: Brid
             controlling = controlling,
             fontSizeSp = fontSize,
             onInput = { bytes -> if (controlling) scope.launch { connection.inputBytes(agent.paneId, bytes) } },
-            onResize = { c, r -> colsRows = c to r; scope.launch { connection.resize(agent.paneId, c, r) } },
+            onResize = { c, r ->
+                colsRows = c to r
+                if (!streamOpened) {
+                    streamOpened = true
+                    scope.launch { connection.openStream(agent.paneId, c, r) }
+                } else {
+                    scope.launch { connection.resize(agent.paneId, c, r) }
+                }
+            },
             onScrollLines = { lines -> if (controlling) scope.launch { connection.scroll(agent.paneId, if (lines > 0) ScrollDirection.UP else ScrollDirection.DOWN, kotlin.math.abs(lines)) } },
             onFontSizeChanged = { scope.launch { settings.setTerminalFontSize(it) } },
             modifier = Modifier.fillMaxWidth().weight(1f)
