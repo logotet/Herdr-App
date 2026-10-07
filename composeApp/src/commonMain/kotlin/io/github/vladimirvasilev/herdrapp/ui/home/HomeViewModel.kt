@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 sealed interface HomeDialog {
     data class RenamePane(val paneId: String, val current: String) : HomeDialog
     data class ClosePane(val paneId: String, val title: String) : HomeDialog
-    data class NewTab(val workspaceId: String) : HomeDialog
+    data class NewTab(val workspaceId: String, val workspaceLabel: String) : HomeDialog
     data class RenameTab(val tabId: String, val current: String) : HomeDialog
     data class CloseTab(val tabId: String, val label: String) : HomeDialog
 }

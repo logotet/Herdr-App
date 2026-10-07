@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,7 +54,12 @@ internal fun LazyListScope.workspaceSection(
 ) {
     val workspaceId = group.workspace.id
     item(key = "ws-$workspaceId") {
-        WorkspaceHeader(group, collapsed, onToggle, onNewTab = { onDialog(HomeDialog.NewTab(workspaceId)) })
+        WorkspaceHeader(
+            group = group,
+            collapsed = collapsed,
+            onToggle = onToggle,
+            onNewTab = { onDialog(HomeDialog.NewTab(workspaceId, group.workspace.label)) },
+        )
     }
     if (collapsed) return
     group.tabs.forEach { tabGroup ->
@@ -69,6 +75,7 @@ internal fun LazyListScope.workspaceSection(
 @Composable
 internal fun PaneEntry(pane: Pane, onOpen: (String) -> Unit, onDialog: (HomeDialog) -> Unit) {
     LongPressMenu(
+        name = pane.title,
         onRename = { onDialog(HomeDialog.RenamePane(pane.paneId, pane.title)) },
         onClose = { onDialog(HomeDialog.ClosePane(pane.paneId, pane.title)) },
     ) { onLongPress ->
@@ -76,8 +83,10 @@ internal fun PaneEntry(pane: Pane, onOpen: (String) -> Unit, onDialog: (HomeDial
     }
 }
 
+/** The menu starts with [name], because it can open over a neighbouring row. */
 @Composable
 private fun LongPressMenu(
+    name: String,
     onRename: () -> Unit,
     onClose: () -> Unit,
     content: @Composable (onLongPress: () -> Unit) -> Unit,
@@ -86,6 +95,14 @@ private fun LongPressMenu(
     Box {
         content { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            Text(
+                name,
+                style = MaterialTheme.typography.labelMedium,
+                color = HerdrTheme.colors.muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 240.dp).padding(horizontal = 12.dp, vertical = 8.dp),
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.home_rename)) },
                 onClick = {
@@ -146,6 +163,7 @@ private fun WorkspaceHeader(group: WorkspaceGroup, collapsed: Boolean, onToggle:
 private fun TabHeader(tab: Tab, onDialog: (HomeDialog) -> Unit) {
     val name = tab.label.ifBlank { stringResource(Res.string.home_tab_number, tab.number) }
     LongPressMenu(
+        name = name,
         onRename = { onDialog(HomeDialog.RenameTab(tab.id, tab.label)) },
         onClose = { onDialog(HomeDialog.CloseTab(tab.id, name)) },
     ) { onLongPress ->

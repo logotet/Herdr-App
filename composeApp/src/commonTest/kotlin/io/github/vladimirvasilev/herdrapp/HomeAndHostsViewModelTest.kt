@@ -97,8 +97,8 @@ class HomeAndHostsViewModelTest {
 
         confirm(viewModel, HomeDialog.RenamePane("w1:p1", "old"), " tests ")
         confirm(viewModel, HomeDialog.ClosePane("w1:p1", "tests"))
-        confirm(viewModel, HomeDialog.NewTab("w1"), "scratch")
-        confirm(viewModel, HomeDialog.NewTab("w1"), "  ")
+        confirm(viewModel, HomeDialog.NewTab("w1", "Mobile"), "scratch")
+        confirm(viewModel, HomeDialog.NewTab("w1", "Mobile"), "  ")
         confirm(viewModel, HomeDialog.RenameTab("w1:t1", "old"), "git")
         confirm(viewModel, HomeDialog.CloseTab("w1:t1", "git"))
 

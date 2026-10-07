@@ -26,7 +26,7 @@
     <string name="home_name_label">Name</string>
     <string name="home_rename_pane_title">Rename pane</string>
     <string name="home_rename_tab_title">Rename tab</string>
-    <string name="home_new_tab_title">New tab</string>
+    <string name="home_new_tab_title">New tab in %1$s</string>
     <string name="home_close_pane_title">Close “%1$s”?</string>
     <string name="home_close_pane_body">The program running in this pane is stopped on the PC. This cannot be undone.</string>
     <string name="home_close_tab_title">Close tab “%1$s”?</string>

@@ -8,10 +8,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import herdrapp.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
@@ -36,7 +43,7 @@ internal fun LayoutDialog(dialog: HomeDialog, onConfirm: (name: String) -> Unit,
             onDismiss = onDismiss,
         )
         is HomeDialog.NewTab -> NameDialog(
-            title = stringResource(Res.string.home_new_tab_title),
+            title = stringResource(Res.string.home_new_tab_title, dialog.workspaceLabel),
             initial = "",
             confirm = stringResource(Res.string.home_create),
             nameRequired = false,
@@ -67,7 +74,12 @@ private fun NameDialog(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by rememberSaveable { mutableStateOf(initial) }
+    // The current name starts out selected, so typing replaces it.
+    var name by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(TextFieldValue(initial, TextRange(0, initial.length)))
+    }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -77,10 +89,13 @@ private fun NameDialog(
                 onValueChange = { name = it },
                 singleLine = true,
                 label = { Text(stringResource(Res.string.home_name_label)) },
+                modifier = Modifier.focusRequester(focus),
             )
         },
         confirmButton = {
-            Button(onClick = { onConfirm(name) }, enabled = !nameRequired || name.isNotBlank()) { Text(confirm) }
+            Button(onClick = { onConfirm(name.text) }, enabled = !nameRequired || name.text.isNotBlank()) {
+                Text(confirm)
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.home_cancel)) } },
     )
