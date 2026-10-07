@@ -25,11 +25,12 @@ internal fun BridgeSnapshot.toSession(): Session {
     val scrollByPane = panes.associate { it.paneId to (it.scroll?.offsetFromBottom ?: 0) }
     val agentPanes = agents.map { it.toPane(previews[it.paneId], scrollByPane[it.paneId] ?: 0, paneSizes[it.paneId]) }
     val agentByPane = agentPanes.associateBy { it.paneId }
+    val tabLabels = tabs.associate { it.tabId to it.label }
     return Session(
         workspaces = workspaces.map { it.toWorkspace() }.sortedBy { it.number },
         tabs = tabs.map { Tab(id = it.tabId, workspaceId = it.workspaceId, number = it.number, label = it.label) },
         agents = AgentOrganizer.orderedAgents(agentPanes, workspaces.map { it.workspaceId }),
-        panes = panes.map { agentByPane[it.paneId] ?: it.toPane(paneSizes[it.paneId]) },
+        panes = panes.map { agentByPane[it.paneId] ?: it.toPane(paneSizes[it.paneId], tabLabels[it.tabId]) },
     )
 }
 
@@ -45,11 +46,12 @@ private fun AgentInfo.toPane(preview: String?, scrolledBack: Int, pcSize: List<I
     pcGrid = pcSize.toGridSize(),
 )
 
-private fun PaneInfo.toPane(pcSize: List<Int>?) = Pane(
+private fun PaneInfo.toPane(pcSize: List<Int>?, tabLabel: String?) = Pane(
     paneId = paneId,
     workspaceId = workspaceId,
     tabId = tabId,
-    title = terminalTitleStripped ?: label ?: paneId,
+    // A shell or an editor often sets no title; the name of its tab says more than its id.
+    title = listOf(terminalTitleStripped, label, tabLabel).firstOrNull { !it.isNullOrBlank() } ?: paneId,
     scrolledBackLines = (scroll?.offsetFromBottom ?: 0).coerceAtLeast(0),
     pcGrid = pcSize.toGridSize(),
 )

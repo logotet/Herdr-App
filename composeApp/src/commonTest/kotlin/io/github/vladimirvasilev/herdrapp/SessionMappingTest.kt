@@ -90,6 +90,18 @@ class SessionMappingTest {
     }
 
     @Test
+    fun aPaneWithoutATitleIsNamedAfterItsTab() {
+        val snapshot = """{"type":"snapshot","workspaces":[{"workspace_id":"w1","number":1,"label":"A"}],
+            "tabs":[{"tab_id":"w1:t1","workspace_id":"w1","number":1,"label":"git"}],
+            "panes":[{"pane_id":"w1:p1","workspace_id":"w1","tab_id":"w1:t1"},
+                     {"pane_id":"w1:p2","workspace_id":"w1","tab_id":"w1:t1","terminal_title_stripped":"lazygit"},
+                     {"pane_id":"w1:p3","workspace_id":"w1"}]}"""
+        val panes = assertIs<ServerMessage.Snapshot>(BridgeJson.parse(snapshot)).value.toSession().panes
+
+        assertEquals(listOf("git", "lazygit", "w1:p3"), panes.map { it.title })
+    }
+
+    @Test
     fun parsesPaneReadResult() {
         val data = Json.parseToJsonElement("""{"type":"pane_read","read":{"pane_id":"w1:p1","text":"a\r\nb","truncated":true}}""")
         val history = assertNotNull(parsePaneRead(data))
