@@ -8,6 +8,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import io.github.vladimirvasilev.herdrapp.domain.HostRepository
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
+import io.github.vladimirvasilev.herdrapp.domain.withHost
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -55,14 +56,16 @@ class AndroidHostRepository(context: Context, scope: CoroutineScope) : HostRepos
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     override suspend fun upsert(host: SavedHost) {
+        // Read inside the transaction: the cached list in [hosts] can lag behind a write in flight.
         appContext.dataStore.edit { prefs ->
-            val others = hosts.value.filterNot { it.id == host.id || (it.host == host.host && it.port == host.port) }
-            prefs[HOSTS] = encodeHosts((others + host).sortedBy { it.name })
+            prefs[HOSTS] = encodeHosts(decodeHosts(prefs[HOSTS].orEmpty()).withHost(host))
         }
     }
 
     override suspend fun delete(id: String) {
-        appContext.dataStore.edit { prefs -> prefs[HOSTS] = encodeHosts(hosts.value.filterNot { it.id == id }) }
+        appContext.dataStore.edit { prefs ->
+            prefs[HOSTS] = encodeHosts(decodeHosts(prefs[HOSTS].orEmpty()).filterNot { it.id == id })
+        }
     }
 }
 
