@@ -1,4 +1,4 @@
-package io.github.vladimirvasilev.herdrapp.protocol
+package io.github.vladimirvasilev.herdrapp.data.bridge.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

@@ -1,14 +1,14 @@
-package io.github.vladimirvasilev.herdrapp
+package io.github.vladimirvasilev.herdrapp.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import io.github.vladimirvasilev.herdrapp.data.HostRepository
-import io.github.vladimirvasilev.herdrapp.data.SavedHost
-import io.github.vladimirvasilev.herdrapp.data.SettingsRepository
-import io.github.vladimirvasilev.herdrapp.protocol.BridgeJson
+import io.github.vladimirvasilev.herdrapp.domain.HostRepository
+import io.github.vladimirvasilev.herdrapp.domain.SavedHost
+import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
+import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted

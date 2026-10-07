@@ -14,8 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
-import io.github.vladimirvasilev.herdrapp.data.SettingsRepository
-import io.github.vladimirvasilev.herdrapp.network.BridgeConnection
+import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
+import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
 import io.github.vladimirvasilev.herdrapp.state.HerdrStore
 
 @Composable

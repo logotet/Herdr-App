@@ -1,8 +1,9 @@
-package io.github.vladimirvasilev.herdrapp.network
+package io.github.vladimirvasilev.herdrapp.data.bridge
 
-import io.github.vladimirvasilev.herdrapp.data.SavedHost
-import io.github.vladimirvasilev.herdrapp.protocol.*
-import io.github.vladimirvasilev.herdrapp.state.ConnectionState
+import io.github.vladimirvasilev.herdrapp.domain.SavedHost
+import io.github.vladimirvasilev.herdrapp.data.bridge.*
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.*
+import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 import io.github.vladimirvasilev.herdrapp.state.HerdrStore
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession

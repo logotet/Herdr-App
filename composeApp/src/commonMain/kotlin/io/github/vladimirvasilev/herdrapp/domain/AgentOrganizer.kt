@@ -1,9 +1,9 @@
-package io.github.vladimirvasilev.herdrapp.state
+package io.github.vladimirvasilev.herdrapp.domain
 
-import io.github.vladimirvasilev.herdrapp.protocol.AgentInfo
-import io.github.vladimirvasilev.herdrapp.protocol.AgentStatus
-import io.github.vladimirvasilev.herdrapp.protocol.PaneInfo
-import io.github.vladimirvasilev.herdrapp.protocol.WorkspaceInfo
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentInfo
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentStatus
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.PaneInfo
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.WorkspaceInfo
 
 data class WorkspaceGroup(val workspace: WorkspaceInfo, val agents: List<AgentInfo>, val otherPanes: List<PaneInfo> = emptyList())
 

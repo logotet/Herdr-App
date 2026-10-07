@@ -1,4 +1,6 @@
-﻿package io.github.vladimirvasilev.herdrapp.protocol
+package io.github.vladimirvasilev.herdrapp.data.bridge
+
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

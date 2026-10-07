@@ -1,6 +1,6 @@
 package io.github.vladimirvasilev.herdrapp
 
-import io.github.vladimirvasilev.herdrapp.protocol.parsePaneRead
+import io.github.vladimirvasilev.herdrapp.data.bridge.parsePaneRead
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals

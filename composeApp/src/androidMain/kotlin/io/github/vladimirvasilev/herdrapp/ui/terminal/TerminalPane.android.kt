@@ -22,7 +22,7 @@ import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
-import io.github.vladimirvasilev.herdrapp.protocol.TerminalFrame
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.TerminalFrame
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlin.io.encoding.Base64

@@ -1,7 +1,7 @@
-package io.github.vladimirvasilev.herdrapp.network
+package io.github.vladimirvasilev.herdrapp.data.bridge
 
-import io.github.vladimirvasilev.herdrapp.protocol.BridgeError
-import io.github.vladimirvasilev.herdrapp.protocol.BridgeResultMessage
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.BridgeError
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.BridgeResultMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout

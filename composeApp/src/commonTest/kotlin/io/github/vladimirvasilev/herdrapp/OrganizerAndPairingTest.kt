@@ -1,10 +1,10 @@
 package io.github.vladimirvasilev.herdrapp
 
 import io.github.vladimirvasilev.herdrapp.data.PairUriParser
-import io.github.vladimirvasilev.herdrapp.protocol.AgentStatus
-import io.github.vladimirvasilev.herdrapp.protocol.ServerMessage
-import io.github.vladimirvasilev.herdrapp.protocol.BridgeJson
-import io.github.vladimirvasilev.herdrapp.state.AgentOrganizer
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentStatus
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
+import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeJson
+import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

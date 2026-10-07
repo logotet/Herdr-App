@@ -1,9 +1,9 @@
 package io.github.vladimirvasilev.herdrapp
 
-import io.github.vladimirvasilev.herdrapp.network.RequestOutcome
-import io.github.vladimirvasilev.herdrapp.network.RequestTracker
-import io.github.vladimirvasilev.herdrapp.protocol.BridgeError
-import io.github.vladimirvasilev.herdrapp.protocol.BridgeResultMessage
+import io.github.vladimirvasilev.herdrapp.data.bridge.RequestOutcome
+import io.github.vladimirvasilev.herdrapp.data.bridge.RequestTracker
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.BridgeError
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.BridgeResultMessage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test

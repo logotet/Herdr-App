@@ -1,6 +1,7 @@
 package io.github.vladimirvasilev.herdrapp
 
-import io.github.vladimirvasilev.herdrapp.protocol.*
+import io.github.vladimirvasilev.herdrapp.data.bridge.*
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.*
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test

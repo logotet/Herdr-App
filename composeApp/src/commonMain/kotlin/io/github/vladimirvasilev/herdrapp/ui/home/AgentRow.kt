@@ -27,8 +27,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.protocol.AgentInfo
-import io.github.vladimirvasilev.herdrapp.protocol.PaneInfo
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentInfo
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.PaneInfo
 import io.github.vladimirvasilev.herdrapp.ui.components.StatusBadge
 
 @Composable

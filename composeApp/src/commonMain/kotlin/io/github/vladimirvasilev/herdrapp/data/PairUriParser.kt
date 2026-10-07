@@ -1,5 +1,7 @@
 package io.github.vladimirvasilev.herdrapp.data
 
+import io.github.vladimirvasilev.herdrapp.domain.SavedHost
+
 import kotlin.random.Random
 
 object PairUriParser {

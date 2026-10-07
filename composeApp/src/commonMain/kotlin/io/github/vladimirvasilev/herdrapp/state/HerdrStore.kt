@@ -1,6 +1,9 @@
 package io.github.vladimirvasilev.herdrapp.state
 
-import io.github.vladimirvasilev.herdrapp.protocol.*
+import io.github.vladimirvasilev.herdrapp.data.bridge.*
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.*
+import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
+import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow

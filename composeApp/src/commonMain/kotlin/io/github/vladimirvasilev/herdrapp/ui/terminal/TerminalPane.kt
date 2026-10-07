@@ -2,7 +2,7 @@ package io.github.vladimirvasilev.herdrapp.ui.terminal
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import io.github.vladimirvasilev.herdrapp.protocol.TerminalFrame
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.TerminalFrame
 import kotlinx.coroutines.flow.Flow
 
 @Composable

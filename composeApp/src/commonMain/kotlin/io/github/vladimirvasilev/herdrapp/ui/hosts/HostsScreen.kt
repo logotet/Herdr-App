@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vladimirvasilev.herdrapp.data.PairUriParser
-import io.github.vladimirvasilev.herdrapp.data.SavedHost
+import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.ui.LocalQrScannerService
 
 @Composable

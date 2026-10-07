@@ -1,4 +1,4 @@
-package io.github.vladimirvasilev.herdrapp.state
+package io.github.vladimirvasilev.herdrapp.domain
 
 sealed interface ConnectionState {
     data object Disconnected : ConnectionState

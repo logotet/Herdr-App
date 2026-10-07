@@ -23,10 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.data.SavedHost
-import io.github.vladimirvasilev.herdrapp.network.BridgeConnection
-import io.github.vladimirvasilev.herdrapp.protocol.WorkspaceInfo
-import io.github.vladimirvasilev.herdrapp.state.AgentOrganizer
+import io.github.vladimirvasilev.herdrapp.domain.SavedHost
+import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.WorkspaceInfo
+import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
 import io.github.vladimirvasilev.herdrapp.state.HerdrStore
 import io.github.vladimirvasilev.herdrapp.ui.components.ConnectionBanner
 import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner

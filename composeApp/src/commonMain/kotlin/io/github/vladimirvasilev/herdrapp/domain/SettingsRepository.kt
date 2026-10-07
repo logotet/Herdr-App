@@ -1,4 +1,4 @@
-package io.github.vladimirvasilev.herdrapp.data
+package io.github.vladimirvasilev.herdrapp.domain
 
 import kotlinx.coroutines.flow.StateFlow
 

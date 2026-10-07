@@ -1,7 +1,10 @@
 package io.github.vladimirvasilev.herdrapp
 
+import io.github.vladimirvasilev.herdrapp.data.AndroidHostRepository
+import io.github.vladimirvasilev.herdrapp.data.AndroidSettingsRepository
+
 import android.app.Application
-import io.github.vladimirvasilev.herdrapp.network.BridgeConnection
+import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
 import io.github.vladimirvasilev.herdrapp.state.HerdrStore
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp

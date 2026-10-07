@@ -13,9 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.data.SavedHost
-import io.github.vladimirvasilev.herdrapp.protocol.HerdrInfo
-import io.github.vladimirvasilev.herdrapp.state.ConnectionState
+import io.github.vladimirvasilev.herdrapp.domain.SavedHost
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.HerdrInfo
+import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 
 @Composable
 internal fun ConnectionBanner(state: ConnectionState, host: SavedHost?, onHosts: () -> Unit) {

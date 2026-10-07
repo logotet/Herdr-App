@@ -14,9 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import io.github.vladimirvasilev.herdrapp.data.HostRepository
-import io.github.vladimirvasilev.herdrapp.data.SettingsRepository
-import io.github.vladimirvasilev.herdrapp.network.BridgeConnection
+import io.github.vladimirvasilev.herdrapp.domain.HostRepository
+import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
+import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
 import io.github.vladimirvasilev.herdrapp.state.HerdrStore
 import io.github.vladimirvasilev.herdrapp.ui.home.HomeScreen
 import io.github.vladimirvasilev.herdrapp.ui.hosts.HostsScreen

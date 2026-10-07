@@ -1,4 +1,4 @@
-package io.github.vladimirvasilev.herdrapp.protocol
+package io.github.vladimirvasilev.herdrapp.data.bridge
 
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
