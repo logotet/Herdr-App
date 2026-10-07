@@ -46,7 +46,8 @@ public final class TerminalSession extends TerminalOutput {
     private boolean mFinished;
     private int mCellWidthPixels = 1;
     private int mCellHeightPixels = 1;
-
+    /** Once remote frames carry their own grid size, the view size is only reported, not applied. */
+    private boolean mRemoteSized;
     public TerminalSession(Integer transcriptRows, TerminalSessionClient client, RemoteIO remote) {
         this.mTranscriptRows = transcriptRows;
         this.mClient = client;
@@ -67,13 +68,17 @@ public final class TerminalSession extends TerminalOutput {
         return mInputEnabled;
     }
 
-    /** Called by TerminalView with the grid size that fits the view. */
+    /**
+     * Called by TerminalView with the grid size that fits the view. The size is always reported to
+     * the remote; it is applied locally only until the first sized remote frame arrives, because
+     * frames are cursor-addressed at the remote's size (the view scales them to fit instead).
+     */
     public void updateSize(int columns, int rows, int cellWidthPixels, int cellHeightPixels) {
         mCellWidthPixels = Math.max(1, cellWidthPixels);
         mCellHeightPixels = Math.max(1, cellHeightPixels);
         if (mEmulator == null) {
             initializeEmulator(columns, rows, mCellWidthPixels, mCellHeightPixels);
-        } else {
+        } else if (!mRemoteSized) {
             mEmulator.resize(columns, rows, mCellWidthPixels, mCellHeightPixels);
         }
         if (mRemote != null) mRemote.onResize(columns, rows);
@@ -90,6 +95,7 @@ public final class TerminalSession extends TerminalOutput {
      */
     public void appendRemote(byte[] data, int width, int height) {
         if (mFinished) return;
+        if (width > 0 && height > 0) mRemoteSized = true;
         if (mEmulator == null) {
             initializeEmulator(width > 0 ? width : 80, height > 0 ? height : 24, mCellWidthPixels, mCellHeightPixels);
         } else if (width > 0 && height > 0 && (width != mEmulator.mColumns || height != mEmulator.mRows)) {

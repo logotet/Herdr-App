@@ -80,6 +80,19 @@ public class RemoteTerminalSessionTest extends TestCase {
         assertEquals(60, session.getEmulator().mColumns);
     }
 
+    public void testViewResizeKeepsFrameSizeButReportsIt() {
+        TerminalSession session = newSession();
+        session.appendRemote(herdrFrame(new String[]{"wide pc pane"}, 94, 39), 94, 39);
+        session.updateSize(45, 30, 10, 20);
+
+        // Frames are cursor-addressed at the PC size; shrinking the grid to the view would garble them.
+        assertEquals(94, session.getEmulator().mColumns);
+        assertEquals(39, session.getEmulator().mRows);
+        assertEquals("wide pc pane", row(session, 0));
+        assertEquals(1, resizes.size());
+        assertEquals(45, resizes.get(0)[0]);
+    }
+
     public void testInputDroppedUnlessEnabled() {
         TerminalSession session = newSession();
         session.updateSize(20, 5, 10, 20);
