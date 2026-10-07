@@ -38,11 +38,12 @@ class BridgeTerminalRepository(
 
     private class PaneStream {
         // Unbounded so a frame is never dropped; a delta that goes missing corrupts the screen.
-        // The socket is ordered and the bridge disconnects a slow client rather than skip frames,
-        // so this buffer is the only place a frame could be lost.
         val frames = Channel<TerminalFrame>(Channel.UNLIMITED)
         /** The grid size last asked for; null until the stream has been opened. */
         var size: Pair<Int, Int>? = null
+        var lastSeq: Long? = null
+        /** Set after a gap: deltas are useless until the next full repaint arrives. */
+        var awaitingFull = false
     }
 
     private val panes = mutableMapOf<String, PaneStream>()
@@ -137,11 +138,49 @@ class BridgeTerminalRepository(
     @OptIn(ExperimentalEncodingApi::class)
     private fun onFrame(frame: FrameDto) {
         val pane = panes[frame.paneId] ?: return
+        if (!inSequence(pane, frame)) return
         val bytes = try {
             Base64.Default.decode(frame.bytes)
         } catch (_: IllegalArgumentException) {
+            resync(frame.paneId, pane)
             return
         }
         pane.frames.trySend(TerminalFrame(bytes, frame.width ?: 0, frame.height ?: 0))
+    }
+
+    /**
+     * False when [frame] must not be drawn because it follows a gap, so the screen it patches is
+     * unknown. herdr numbers the frames of a stream 1, 2, 3 and starts every stream, and every
+     * resize, with a full frame.
+     */
+    private fun inSequence(pane: PaneStream, frame: FrameDto): Boolean {
+        if (frame.full) {
+            pane.awaitingFull = false
+            pane.lastSeq = frame.seq
+            return true
+        }
+        if (pane.awaitingFull) return false
+        val seq = frame.seq ?: return true
+        val last = pane.lastSeq
+        if (last != null && seq != last + 1) {
+            resync(frame.paneId, pane)
+            return false
+        }
+        pane.lastSeq = seq
+        return true
+    }
+
+    /** Restarts the stream in its current mode; a restarted stream begins with a full frame. */
+    private fun resync(paneId: String, pane: PaneStream) {
+        pane.awaitingFull = true
+        val (cols, rows) = pane.size ?: return
+        val controlling = _streamModes.value[paneId] == StreamMode.CONTROL
+        scope.launch(dispatcher) {
+            if (controlling) {
+                connection.takeControl(paneId, cols, rows, takeover = true)
+            } else {
+                connection.openStream(paneId, cols, rows)
+            }
+        }
     }
 }

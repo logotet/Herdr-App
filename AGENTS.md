@@ -53,7 +53,9 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'; .\gradlew.bat asse
   Everything that touches the socket runs on the single-threaded bridge dispatcher.
 - A `BridgeListener` runs inside the loop that reads the socket. It must never wait for the
   result of a request, or the result can never be read.
-- Never drop terminal frames: no lossy buffer between the socket and the emulator.
+- Never drop terminal frames: no lossy buffer between the socket and the emulator. Frames of a
+  stream are numbered 1, 2, 3; a delta that does not follow its predecessor is not drawn and the
+  stream is restarted, which brings a full frame.
 - Always rethrow `CancellationException`.
 
 ## Kotlin Multiplatform

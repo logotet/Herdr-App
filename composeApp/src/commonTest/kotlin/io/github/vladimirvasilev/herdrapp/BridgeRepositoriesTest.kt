@@ -105,6 +105,38 @@ class BridgeRepositoriesTest {
     }
 
     @Test
+    fun aGapRestartsTheStreamAndSkipsDeltasUntilTheNextFullFrame() = runTest {
+        val rig = Rig(this)
+        with(rig) { openPane() }
+        rig.frame(1, "screen", full = true)
+        rig.frame(2, "+a")
+
+        rig.frame(4, "+lost-its-base")
+        rig.frame(5, "+still-useless")
+        runCurrent()
+        assertTrue(rig.bridge.sent.single().contains(""""type":"open_stream""""))
+
+        rig.frame(1, "repaint", full = true)
+        rig.frame(2, "+c")
+        runCurrent()
+        assertEquals(listOf("screen", "+a", "repaint", "+c"), rig.received)
+    }
+
+    @Test
+    fun aResizeRepaintInTheMiddleOfAStreamIsNotAGap() = runTest {
+        val rig = Rig(this)
+        with(rig) { openPane() }
+
+        rig.frame(1, "screen", full = true)
+        rig.frame(2, "resized", full = true)
+        rig.frame(3, "+a")
+        runCurrent()
+
+        assertEquals(listOf("screen", "resized", "+a"), rig.received)
+        assertTrue(rig.bridge.sent.isEmpty())
+    }
+
+    @Test
     fun streamMessagesSetTheModeAndALostSocketClearsIt() = runTest {
         val rig = Rig(this)
         with(rig) { openPane() }
