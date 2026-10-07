@@ -5,9 +5,13 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
 import io.github.vladimirvasilev.herdrapp.data.bridge.parsePaneRead
 import io.github.vladimirvasilev.herdrapp.data.bridge.toSession
 import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
+import io.github.vladimirvasilev.herdrapp.domain.AgentState
 import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 import io.github.vladimirvasilev.herdrapp.domain.GridSize
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.Session
+import io.github.vladimirvasilev.herdrapp.domain.Tab
+import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -36,11 +40,38 @@ class SessionMappingTest {
     }
 
     @Test
-    fun groupsListPanesWithoutAnAgentSeparately() {
+    fun groupsHoldEveryPaneOfAWorkspaceByTab() {
         val groups = AgentOrganizer.groups(fixture())
         assertEquals(listOf("Mobile", "Bridge"), groups.map { it.workspace.label })
-        assertEquals(listOf("PowerShell"), groups.first().otherPanes.map { it.title })
-        assertTrue(groups.last().otherPanes.isEmpty())
+
+        val mobile = groups.first()
+        assertEquals(listOf("copilot", "shell"), mobile.tabs.map { it.tab?.label })
+        assertEquals(listOf("Fix tests", "PowerShell"), mobile.panes.map { it.title })
+        assertNull(mobile.panes.last().agent)
+    }
+
+    @Test
+    fun aWorkspaceShowsItsMostUrgentAgentStatus() {
+        val groups = AgentOrganizer.groups(fixture())
+        assertEquals(listOf(AgentStatus.BLOCKED, AgentStatus.WORKING), groups.map { it.status })
+
+        val noAgents = Session(
+            workspaces = listOf(Workspace("w1", 1, "Tools", 1)),
+            panes = listOf(Pane("w1:p1", "w1", null, "lazygit")),
+        )
+        assertNull(AgentOrganizer.groups(noAgents).single().status)
+    }
+
+    @Test
+    fun inATabAgentsComeBeforeOtherPanesAndBlockedOnesFirst() {
+        fun agent(id: String, status: AgentStatus) = Pane(id, "w1", "w1:t1", id, AgentState("claude", status, null))
+        val session = Session(
+            workspaces = listOf(Workspace("w1", 1, "Mobile", 3)),
+            tabs = listOf(Tab("w1:t1", "w1", 1, "main")),
+            panes = listOf(Pane("nvim", "w1", "w1:t1", "nvim"), agent("idle", AgentStatus.IDLE), agent("blocked", AgentStatus.BLOCKED)),
+        )
+
+        assertEquals(listOf("blocked", "idle", "nvim"), AgentOrganizer.groups(session).single().panes.map { it.paneId })
     }
 
     @Test

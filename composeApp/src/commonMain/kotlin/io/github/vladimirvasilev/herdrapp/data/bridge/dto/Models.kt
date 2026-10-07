@@ -28,6 +28,7 @@ data class HerdrStatusMessage(
 data class BridgeSnapshot(
     val type: String = "snapshot",
     val workspaces: List<WorkspaceInfo> = emptyList(),
+    val tabs: List<TabInfo> = emptyList(),
     val panes: List<PaneInfo> = emptyList(),
     val agents: List<AgentInfo> = emptyList(),
     @SerialName("focused_workspace_id") val focusedWorkspaceId: String? = null,
@@ -48,6 +49,14 @@ data class WorkspaceInfo(
     @SerialName("pane_count") val paneCount: Int = 0,
     @SerialName("tab_count") val tabCount: Int = 0,
     @SerialName("active_tab_id") val activeTabId: String? = null
+)
+
+@Serializable
+data class TabInfo(
+    @SerialName("tab_id") val tabId: String,
+    @SerialName("workspace_id") val workspaceId: String,
+    val number: Int = 0,
+    val label: String = ""
 )
 
 @Serializable

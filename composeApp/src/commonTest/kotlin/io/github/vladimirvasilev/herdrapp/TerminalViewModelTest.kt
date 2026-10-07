@@ -10,6 +10,7 @@ import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.PaneHistory
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.StreamMode
+import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import io.github.vladimirvasilev.herdrapp.ui.terminal.KeySpec
 import io.github.vladimirvasilev.herdrapp.ui.terminal.PaneNotice
 import io.github.vladimirvasilev.herdrapp.ui.terminal.PaneUiState
@@ -241,8 +242,11 @@ class TerminalViewModelTest {
 
     private fun shell(paneId: String, workspaceId: String) = Pane(paneId, workspaceId, null, "shell")
 
-    private fun sessionOf(vararg panes: Pane) =
-        Session(agents = panes.filter { it.agent != null }, panes = panes.toList())
+    private fun sessionOf(vararg panes: Pane) = Session(
+        workspaces = panes.map { it.workspaceId }.distinct().mapIndexed { index, id -> Workspace(id, index + 1, id, 0) },
+        agents = panes.filter { it.agent != null },
+        panes = panes.toList(),
+    )
 
     @Test
     fun openedOnAnAgentItPagesThroughEveryAgent() = runTest(dispatcher) {

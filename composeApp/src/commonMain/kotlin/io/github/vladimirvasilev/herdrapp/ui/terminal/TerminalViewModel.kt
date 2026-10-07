@@ -3,6 +3,7 @@ package io.github.vladimirvasilev.herdrapp.ui.terminal
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
 import io.github.vladimirvasilev.herdrapp.domain.Pane
@@ -280,7 +281,8 @@ internal class TerminalViewModel(
             pagerWorkspaceId = opened.workspaceId.takeIf { opened.agent == null }
         }
         val workspaceId = pagerWorkspaceId ?: return current.agents
-        return current.panes.filter { it.workspaceId == workspaceId }
+        // The same order as the workspace's section on the home screen.
+        return AgentOrganizer.groups(current).firstOrNull { it.workspace.id == workspaceId }?.panes.orEmpty()
     }
 
     private fun toUiState(

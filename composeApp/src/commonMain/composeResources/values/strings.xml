@@ -11,12 +11,13 @@
     <string name="herdr_unavailable_bridge_ok">Bridge connected</string>
 
     <!-- Agent list -->
-    <string name="home_title">Agents</string>
+    <string name="home_title">Workspaces</string>
     <string name="home_refresh_hint">Pull down to refresh</string>
     <string name="home_needs_you">Needs you</string>
     <string name="home_workspace">%1$d. %2$s (%3$d)</string>
-    <string name="home_other_panes">Other panes (%1$d)</string>
-    <string name="home_other_pane">• %1$s</string>
+    <string name="home_workspace_collapse">Collapse workspace</string>
+    <string name="home_workspace_expand">Expand workspace</string>
+    <string name="home_tab_number">Tab %1$d</string>
     <string name="home_agent_unknown_kind">agent</string>
     <string name="home_no_hosts_title">No bridge host paired</string>
     <string name="home_no_hosts_body">Add a herdr-bridge host by QR scan or manual entry.</string>

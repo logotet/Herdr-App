@@ -11,6 +11,7 @@ import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.PaneHistory
 import io.github.vladimirvasilev.herdrapp.domain.Session
+import io.github.vladimirvasilev.herdrapp.domain.Tab
 import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -26,6 +27,7 @@ internal fun BridgeSnapshot.toSession(): Session {
     val agentByPane = agentPanes.associateBy { it.paneId }
     return Session(
         workspaces = workspaces.map { it.toWorkspace() }.sortedBy { it.number },
+        tabs = tabs.map { Tab(id = it.tabId, workspaceId = it.workspaceId, number = it.number, label = it.label) },
         agents = AgentOrganizer.orderedAgents(agentPanes, workspaces.map { it.workspaceId }),
         panes = panes.map { agentByPane[it.paneId] ?: it.toPane(paneSizes[it.paneId]) },
     )

@@ -18,7 +18,10 @@ import herdrapp.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -27,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.vladimirvasilev.herdrapp.AppContainer
-import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import io.github.vladimirvasilev.herdrapp.ui.components.ConnectionBanner
 import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner
 
@@ -46,6 +48,8 @@ internal fun HomeScreen(
     onRefresh: () -> Unit,
 ) {
     val currentOnRefresh by rememberUpdatedState(onRefresh)
+    // Ids of the workspaces the user folded away.
+    var collapsed by rememberSaveable { mutableStateOf(listOf<String>()) }
     Column(Modifier.fillMaxSize()) {
         ConnectionBanner(state.connection, state.hostName, onHosts)
         HerdrUnavailableBanner(state.herdrAvailable)
@@ -75,9 +79,13 @@ internal fun HomeScreen(
                 items(state.needsYou, key = { "needs-${it.paneId}" }) { AgentRow(it, onOpen) }
             }
             state.groups.forEach { group ->
-                item { WorkspaceHeader(group.workspace) }
-                items(group.agents, key = { it.paneId }) { AgentRow(it, onOpen) }
-                if (group.otherPanes.isNotEmpty()) item { OtherPanes(group.otherPanes, onOpen) }
+                val id = group.workspace.id
+                workspaceSection(
+                    group = group,
+                    collapsed = id in collapsed,
+                    onToggle = { collapsed = if (id in collapsed) collapsed - id else collapsed + id },
+                    onOpen = onOpen,
+                )
             }
         }
     }
@@ -115,12 +123,3 @@ private fun SectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
 }
 
-@Composable
-private fun WorkspaceHeader(ws: Workspace) {
-    Text(
-        stringResource(Res.string.home_workspace, ws.number, ws.label, ws.paneCount),
-        style = MaterialTheme.typography.titleSmall,
-        color = HerdrTheme.colors.workspaceLabel,
-        modifier = Modifier.padding(top = 6.dp),
-    )
-}

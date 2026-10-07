@@ -58,14 +58,18 @@ class HomeAndHostsViewModelTest {
         backgroundScope.launch { viewModel.uiState.collect {} }
         val blocked = Pane("w1:p1", "w1", null, "Fix tests", AgentState("claude", AgentStatus.BLOCKED, null))
 
-        session.session.value = Session(workspaces = listOf(Workspace("w1", 1, "Mobile", 1)), agents = listOf(blocked))
+        session.session.value = Session(
+            workspaces = listOf(Workspace("w1", 1, "Mobile", 1)),
+            agents = listOf(blocked),
+            panes = listOf(blocked),
+        )
         runCurrent()
 
         val state = viewModel.uiState.value
         assertTrue(state.hasHosts)
         assertEquals("Desk", state.hostName)
         assertEquals(listOf(blocked), state.needsYou)
-        assertEquals(listOf(blocked), state.groups.single().agents)
+        assertEquals(listOf(blocked), state.groups.single().panes)
     }
 
     @Test

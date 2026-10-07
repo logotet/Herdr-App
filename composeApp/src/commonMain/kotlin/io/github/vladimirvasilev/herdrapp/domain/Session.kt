@@ -9,6 +9,14 @@ data class Workspace(
     val paneCount: Int,
 )
 
+/** A tab of a workspace; every pane sits in one. */
+data class Tab(
+    val id: String,
+    val workspaceId: String,
+    val number: Int,
+    val label: String,
+)
+
 /** The coding agent herdr detected in a pane. */
 data class AgentState(
     /** The agent program, for example "claude"; null when herdr could not tell. */
@@ -42,6 +50,7 @@ data class GridSize(val cols: Int, val rows: Int)
  */
 data class Session(
     val workspaces: List<Workspace> = emptyList(),
+    val tabs: List<Tab> = emptyList(),
     val agents: List<Pane> = emptyList(),
     val panes: List<Pane> = emptyList(),
 )
