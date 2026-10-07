@@ -60,7 +60,6 @@ class BridgeConnection(
 ) {
     private val tracker = RequestTracker()
     private val listeners = mutableListOf<BridgeListener>()
-    private val activeStreams = mutableMapOf<String, Pair<Int, Int>>()
     private var socket: BridgeSocket? = null
     private var job: Job? = null
     private var requestSeq = 0
@@ -94,9 +93,6 @@ class BridgeConnection(
                         socket = opened
                         delayMs = INITIAL_BACKOFF_MS
                         notify(SocketStatus.Open)
-                        activeStreams.toMap().forEach { (paneId, size) ->
-                            opened.send(BridgeJson.encode(OpenStreamRequest(paneId = paneId, cols = size.first, rows = size.second)))
-                        }
                         while (true) {
                             val text = opened.receive() ?: break
                             handleIncomingText(text)
@@ -139,13 +135,19 @@ class BridgeConnection(
 
     suspend fun refresh(): RequestOutcome = request { id -> BridgeJson.encode(RefreshRequest(id = id)) }
 
-    suspend fun openStream(paneId: String, cols: Int, rows: Int): RequestOutcome = request(
-        before = { activeStreams[paneId] = cols to rows },
-    ) { id -> BridgeJson.encode(OpenStreamRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
+    suspend fun openStream(paneId: String, cols: Int, rows: Int): RequestOutcome =
+        request { id -> BridgeJson.encode(OpenStreamRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
 
-    suspend fun closeStream(paneId: String): RequestOutcome = request(
-        before = { activeStreams.remove(paneId) },
-    ) { id -> BridgeJson.encode(CloseStreamRequest(id = id, paneId = paneId)) }
+    /**
+     * Opens a stream without waiting for the result. For listeners, which run inside the read loop
+     * and so cannot wait for one.
+     */
+    suspend fun openStreamWithoutReply(paneId: String, cols: Int, rows: Int) {
+        socket?.send(BridgeJson.encode(OpenStreamRequest(paneId = paneId, cols = cols, rows = rows)))
+    }
+
+    suspend fun closeStream(paneId: String): RequestOutcome =
+        request { id -> BridgeJson.encode(CloseStreamRequest(id = id, paneId = paneId)) }
 
     suspend fun takeControl(paneId: String, cols: Int, rows: Int, takeover: Boolean = false): RequestOutcome =
         request { id ->
@@ -162,9 +164,8 @@ class BridgeConnection(
         BridgeJson.encode(InputRequest(id = id, paneId = paneId, bytes = Base64.Default.encode(bytes)))
     }
 
-    suspend fun resize(paneId: String, cols: Int, rows: Int): RequestOutcome = request(
-        before = { activeStreams[paneId] = cols to rows },
-    ) { id -> BridgeJson.encode(ResizeRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
+    suspend fun resize(paneId: String, cols: Int, rows: Int): RequestOutcome =
+        request { id -> BridgeJson.encode(ResizeRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
 
     suspend fun sendKeys(paneId: String, keys: List<String>): RequestOutcome {
         val params = buildJsonObject {
@@ -209,10 +210,8 @@ class BridgeConnection(
 
     private suspend fun request(
         timeoutMillis: Long = REQUEST_TIMEOUT_MS,
-        before: () -> Unit = {},
         body: (String) -> String,
     ): RequestOutcome = withContext(dispatcher) {
-        before()
         val open = socket ?: return@withContext RequestOutcome.Failure(BridgeError("disconnected", "Not connected"))
         val id = "m${++requestSeq}"
         tracker.register(id)

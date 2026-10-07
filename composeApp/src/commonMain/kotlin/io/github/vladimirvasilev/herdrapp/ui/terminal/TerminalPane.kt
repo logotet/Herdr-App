@@ -2,12 +2,13 @@ package io.github.vladimirvasilev.herdrapp.ui.terminal
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.TerminalFrame
+import io.github.vladimirvasilev.herdrapp.domain.TerminalFrame
 import kotlinx.coroutines.flow.Flow
 
 @Composable
 expect fun TerminalPane(
     paneId: String,
+    /** The frames of this pane only, in order. */
     frames: Flow<TerminalFrame>,
     controlling: Boolean,
     fontSizeSp: Float,

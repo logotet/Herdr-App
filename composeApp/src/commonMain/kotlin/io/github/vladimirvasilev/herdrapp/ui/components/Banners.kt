@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.HerdrInfo
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 
 @Composable
@@ -40,8 +39,8 @@ internal fun ConnectionBanner(state: ConnectionState, host: SavedHost?, onHosts:
 }
 
 @Composable
-internal fun HerdrUnavailableBanner(status: HerdrInfo?) {
-    if (status?.available != false) return
+internal fun HerdrUnavailableBanner(herdrAvailable: Boolean) {
+    if (herdrAvailable) return
     Row(
         Modifier.fillMaxWidth().background(Color(0xFF5A3418)).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -27,23 +27,24 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentInfo
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.PaneInfo
+import io.github.vladimirvasilev.herdrapp.domain.Agent
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.ui.components.StatusBadge
 
 @Composable
-internal fun AgentRow(agent: AgentInfo, preview: String?, onOpen: (String) -> Unit) {
+internal fun AgentRow(agent: Agent, onOpen: (String) -> Unit) {
     Card(
         Modifier.fillMaxWidth().clickable { onOpen(agent.paneId) },
         colors = CardDefaults.cardColors(containerColor = Color(0xFF181825)),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(agent.agent ?: "agent", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(agent.kind ?: "agent", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(8.dp))
-                Text(agent.title(), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                StatusBadge(agent.agentStatus)
+                Text(agent.title, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                StatusBadge(agent.status)
             }
+            val preview = agent.preview
             if (!preview.isNullOrBlank()) {
                 Text(
                     preview.lines().filter { it.isNotBlank() }.takeLast(3).joinToString("\n"),
@@ -58,7 +59,7 @@ internal fun AgentRow(agent: AgentInfo, preview: String?, onOpen: (String) -> Un
 }
 
 @Composable
-internal fun OtherPanes(panes: List<PaneInfo>) {
+internal fun OtherPanes(panes: List<Pane>) {
     var expanded by remember { mutableStateOf(false) }
     Column(
         Modifier
@@ -72,7 +73,7 @@ internal fun OtherPanes(panes: List<PaneInfo>) {
             Column {
                 panes.forEach { pane ->
                     Text(
-                        "? ${pane.terminalTitleStripped ?: pane.label ?: pane.paneId}",
+                        "? ${pane.title}",
                         color = Color.Gray,
                         maxLines = 1,
                     )

@@ -24,34 +24,29 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
-import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.WorkspaceInfo
 import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
-import io.github.vladimirvasilev.herdrapp.state.HerdrStore
+import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
+import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import io.github.vladimirvasilev.herdrapp.ui.components.ConnectionBanner
 import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner
 
 @Composable
 internal fun HomeScreen(
-    store: HerdrStore,
-    connection: BridgeConnection,
+    session: SessionRepository,
     hostList: List<SavedHost>,
     onOpen: (String) -> Unit,
     onHosts: () -> Unit,
     onRefresh: () -> Unit,
 ) {
-    val state by store.connectionState.collectAsState()
-    val workspaces by store.workspaces.collectAsState()
-    val agents by store.agents.collectAsState()
-    val panes by store.panes.collectAsState()
-    val previews by store.previews.collectAsState()
-    val currentHost by connection.currentHost.collectAsState()
-    val herdrStatus by store.herdrStatus.collectAsState()
-    val groups = remember(workspaces, agents, panes) { AgentOrganizer.groups(workspaces, agents, panes) }
-    val needsYou = remember(agents) { AgentOrganizer.needsYou(agents) }
+    val state by session.connectionState.collectAsState()
+    val current by session.session.collectAsState()
+    val currentHost by session.currentHost.collectAsState()
+    val herdrAvailable by session.herdrAvailable.collectAsState()
+    val groups = remember(current) { AgentOrganizer.groups(current) }
+    val needsYou = remember(current) { AgentOrganizer.needsYou(current.agents) }
     Column(Modifier.fillMaxSize()) {
         ConnectionBanner(state, currentHost, onHosts)
-        HerdrUnavailableBanner(herdrStatus)
+        HerdrUnavailableBanner(herdrAvailable)
         if (hostList.isEmpty()) {
             EmptyHosts(onHosts)
             return@Column
@@ -75,11 +70,11 @@ internal fun HomeScreen(
             item { HeaderRow("Agents", "Pull down to refresh") }
             if (needsYou.isNotEmpty()) {
                 item { SectionTitle("Needs you") }
-                items(needsYou, key = { "needs-${it.paneId}" }) { AgentRow(it, previews[it.paneId], onOpen) }
+                items(needsYou, key = { "needs-${it.paneId}" }) { AgentRow(it, onOpen) }
             }
             groups.forEach { group ->
                 item { WorkspaceHeader(group.workspace) }
-                items(group.agents, key = { it.paneId }) { AgentRow(it, previews[it.paneId], onOpen) }
+                items(group.agents, key = { it.paneId }) { AgentRow(it, onOpen) }
                 if (group.otherPanes.isNotEmpty()) item { OtherPanes(group.otherPanes) }
             }
         }
@@ -119,7 +114,7 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun WorkspaceHeader(ws: WorkspaceInfo) {
+private fun WorkspaceHeader(ws: Workspace) {
     Text(
         "${ws.number}. ${ws.label} (${ws.paneCount})",
         style = MaterialTheme.typography.titleSmall,

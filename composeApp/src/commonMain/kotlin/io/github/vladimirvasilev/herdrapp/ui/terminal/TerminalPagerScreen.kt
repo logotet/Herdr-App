@@ -14,19 +14,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
+import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
 import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
-import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
-import io.github.vladimirvasilev.herdrapp.state.HerdrStore
+import io.github.vladimirvasilev.herdrapp.domain.TerminalRepository
 
 @Composable
 internal fun TerminalPagerScreen(
     initialPage: Int,
-    store: HerdrStore,
-    connection: BridgeConnection,
+    session: SessionRepository,
+    terminal: TerminalRepository,
     settings: SettingsRepository,
     onBack: () -> Unit,
 ) {
-    val agents by store.agents.collectAsState()
+    val current by session.session.collectAsState()
+    val herdrAvailable by session.herdrAvailable.collectAsState()
+    val agents = current.agents
     val pagerState = rememberPagerState(
         initialPage = initialPage.coerceIn(0, (agents.size - 1).coerceAtLeast(0)),
         pageCount = { agents.size.coerceAtLeast(1) },
@@ -49,8 +51,8 @@ internal fun TerminalPagerScreen(
         val agent = agents[page.coerceAtMost(agents.lastIndex)]
         TerminalScreen(
             agent = agent,
-            store = store,
-            connection = connection,
+            herdrAvailable = herdrAvailable,
+            terminal = terminal,
             settings = settings,
             onBack = onBack,
             draft = drafts[agent.paneId] ?: TextFieldValue(""),

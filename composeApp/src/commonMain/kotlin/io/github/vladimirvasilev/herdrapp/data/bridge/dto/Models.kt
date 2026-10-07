@@ -22,9 +22,7 @@ data class HerdrStatusMessage(
     val version: String? = null,
     val protocol: Int? = null,
     val available: Boolean = false
-) {
-    fun toInfo(): HerdrInfo = HerdrInfo(version = version, protocol = protocol, available = available)
-}
+)
 
 @Serializable
 data class BridgeSnapshot(
@@ -83,9 +81,7 @@ data class AgentInfo(
     val scroll: PaneScroll? = null,
     val revision: Long? = null,
     @SerialName("state_change_seq") val stateChangeSeq: Long = 0
-) {
-    fun title(): String = terminalTitleStripped?.takeIf { it.isNotBlank() } ?: label?.takeIf { it.isNotBlank() } ?: agent ?: paneId
-}
+)
 
 @Serializable
 data class PaneScroll(
@@ -107,11 +103,12 @@ enum class AgentStatus {
 data class TerminalFrame(
     val type: String = "frame",
     @SerialName("pane_id") val paneId: String,
-    val seq: Long,
+    // The bridge forwards these from herdr as they are, so any of them can be missing.
+    val seq: Long? = null,
     val full: Boolean = false,
-    val width: Int,
-    val height: Int,
-    val bytes: String
+    val width: Int? = null,
+    val height: Int? = null,
+    val bytes: String = ""
 )
 
 @Serializable

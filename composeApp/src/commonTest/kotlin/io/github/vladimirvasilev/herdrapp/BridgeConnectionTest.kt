@@ -120,23 +120,4 @@ class BridgeConnectionTest {
         assertIs<ServerMessage.Hello>(recorder.messages.single())
         assertEquals(1, bridge.attempts)
     }
-
-    @Test
-    fun openStreamsAreReopenedAfterAReconnect() = runTest {
-        val bridge = FakeBridgeSocketFactory()
-        val connection = connection(bridge)
-        connection.connect(TEST_HOST)
-        runCurrent()
-        val opened = async { connection.openStream("w1:p1", 94, 39) }
-        runCurrent()
-        bridge.push("""{"type":"result","id":"m1","ok":true}""")
-        opened.await()
-        bridge.sent.clear()
-
-        bridge.closeFromServer()
-        advanceTimeBy(1_001)
-
-        val reopen = bridge.sent.single()
-        assertTrue(reopen.contains(""""type":"open_stream"""") && reopen.contains(""""pane_id":"w1:p1""""))
-    }
 }

@@ -20,12 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentInfo
+import io.github.vladimirvasilev.herdrapp.domain.Agent
 import io.github.vladimirvasilev.herdrapp.ui.components.StatusBadge
 
 @Composable
 internal fun TerminalTopBar(
-    agent: AgentInfo,
+    agent: Agent,
     controlling: Boolean,
     onBack: () -> Unit,
     onRelease: () -> Unit,
@@ -37,10 +37,10 @@ internal fun TerminalTopBar(
     ) {
         TextButton(onClick = onBack) { Text("Back") }
         Column(Modifier.weight(1f)) {
-            Text(agent.title(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(agent.agent ?: agent.paneId, color = Color.Gray, style = MaterialTheme.typography.labelSmall)
+            Text(agent.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(agent.kind ?: agent.paneId, color = Color.Gray, style = MaterialTheme.typography.labelSmall)
         }
-        StatusBadge(agent.agentStatus)
+        StatusBadge(agent.status)
         Spacer(Modifier.width(8.dp))
         if (controlling) {
             Button(onClick = onRelease) { Text("Release") }

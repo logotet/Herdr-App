@@ -1,7 +1,6 @@
 package io.github.vladimirvasilev.herdrapp.data.bridge
 
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
-
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -12,6 +11,8 @@ object BridgeJson {
     val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
+        // An explicit null for a field that has a default falls back to the default.
+        coerceInputValues = true
         encodeDefaults = true
     }
 

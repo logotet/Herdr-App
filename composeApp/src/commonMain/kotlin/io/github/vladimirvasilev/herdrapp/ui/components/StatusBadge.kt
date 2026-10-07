@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentStatus
+import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 
 @Composable
 internal fun StatusBadge(status: AgentStatus) {

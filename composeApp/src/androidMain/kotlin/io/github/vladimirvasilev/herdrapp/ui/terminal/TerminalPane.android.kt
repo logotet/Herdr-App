@@ -22,11 +22,8 @@ import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.TerminalFrame
+import io.github.vladimirvasilev.herdrapp.domain.TerminalFrame
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.math.roundToInt
 
 private const val TAG = "HerdrTerminal"
@@ -39,7 +36,6 @@ private const val MAX_FONT_SP = 28f
 // How far a downward drag must travel before it opens history, so diagonal swipes don't.
 private const val HISTORY_PULL_DP = 40f
 
-@OptIn(ExperimentalEncodingApi::class)
 @Composable
 actual fun TerminalPane(
     paneId: String,
@@ -67,9 +63,7 @@ actual fun TerminalPane(
     }
 
     LaunchedEffect(paneId, frames) {
-        frames.filter { it.paneId == paneId }.collect { frame ->
-            bridge.session.appendRemote(Base64.Default.decode(frame.bytes), frame.width, frame.height)
-        }
+        frames.collect { frame -> bridge.session.appendRemote(frame.bytes, frame.cols, frame.rows) }
     }
 
     // A pager page can be reused for another pane; give each pane its own view and session.

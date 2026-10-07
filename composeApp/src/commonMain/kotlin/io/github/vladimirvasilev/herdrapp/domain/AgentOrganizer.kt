@@ -1,32 +1,28 @@
 package io.github.vladimirvasilev.herdrapp.domain
 
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentInfo
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentStatus
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.PaneInfo
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.WorkspaceInfo
-
-data class WorkspaceGroup(val workspace: WorkspaceInfo, val agents: List<AgentInfo>, val otherPanes: List<PaneInfo> = emptyList())
+data class WorkspaceGroup(val workspace: Workspace, val agents: List<Agent>, val otherPanes: List<Pane> = emptyList())
 
 object AgentOrganizer {
-    fun orderedAgents(agents: List<AgentInfo>, workspaces: List<WorkspaceInfo>): List<AgentInfo> {
-        val workspaceOrder = workspaces.withIndex().associate { it.value.workspaceId to it.index }
+    /** Blocked agents first, then by the position of their workspace in [workspaceIds]. */
+    fun orderedAgents(agents: List<Agent>, workspaceIds: List<String>): List<Agent> {
+        val workspaceOrder = workspaceIds.withIndex().associate { it.value to it.index }
         return agents.sortedWith(
-            compareByDescending<AgentInfo> { it.agentStatus == AgentStatus.BLOCKED }
+            compareByDescending<Agent> { it.status == AgentStatus.BLOCKED }
                 .thenBy { workspaceOrder[it.workspaceId] ?: Int.MAX_VALUE }
                 .thenBy { it.tabId ?: "" }
                 .thenBy { it.paneId }
         )
     }
 
-    fun needsYou(agents: List<AgentInfo>): List<AgentInfo> = agents.filter { it.agentStatus == AgentStatus.BLOCKED }
+    fun needsYou(agents: List<Agent>): List<Agent> = agents.filter { it.status == AgentStatus.BLOCKED }
 
-    fun groups(workspaces: List<WorkspaceInfo>, agents: List<AgentInfo>, panes: List<PaneInfo>): List<WorkspaceGroup> {
-        val agentPaneIds = agents.map { it.paneId }.toSet()
-        return workspaces.sortedBy { it.number }.map { ws ->
+    fun groups(session: Session): List<WorkspaceGroup> {
+        val agentPaneIds = session.agents.map { it.paneId }.toSet()
+        return session.workspaces.sortedBy { it.number }.map { ws ->
             WorkspaceGroup(
                 workspace = ws,
-                agents = orderedAgents(agents.filter { it.workspaceId == ws.workspaceId }, listOf(ws)),
-                otherPanes = panes.filter { it.workspaceId == ws.workspaceId && it.paneId !in agentPaneIds }
+                agents = orderedAgents(session.agents.filter { it.workspaceId == ws.id }, listOf(ws.id)),
+                otherPanes = session.panes.filter { it.workspaceId == ws.id && it.paneId !in agentPaneIds },
             )
         }
     }
