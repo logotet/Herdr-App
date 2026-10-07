@@ -55,4 +55,7 @@
     <string name="terminal_notice_no_scrollback">No scrollback here (full-screen app). Try PgUp/PgDn.</string>
     <string name="terminal_notice_send_failed">Send failed: %1$s</string>
     <string name="terminal_notice_history_failed">History: %1$s</string>
+    <string name="terminal_notice_jump_failed">Could not jump to latest: %1$s</string>
+    <string name="terminal_scrolled_back">Scrolled back %1$d lines on the PC. New output is hidden.</string>
+    <string name="terminal_jump_to_latest">Jump to latest</string>
 </resources>

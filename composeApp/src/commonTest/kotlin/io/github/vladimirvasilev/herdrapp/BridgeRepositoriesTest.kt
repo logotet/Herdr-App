@@ -3,10 +3,13 @@ package io.github.vladimirvasilev.herdrapp
 import io.github.vladimirvasilev.herdrapp.data.BridgeSessionRepository
 import io.github.vladimirvasilev.herdrapp.data.BridgeTerminalRepository
 import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
+import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
+import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.StreamMode
 import io.github.vladimirvasilev.herdrapp.domain.TerminalFrame
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -41,6 +44,24 @@ class BridgeRepositoriesTest {
         fun frame(seq: Long, text: String, full: Boolean = false) = bridge.push(
             """{"type":"frame","pane_id":"$PANE","seq":$seq,"full":$full,"width":94,"height":39,"bytes":"${Base64.Default.encode(text.encodeToByteArray())}"}"""
         )
+
+        /** Answers every request the app sends with success, until it stops sending. */
+        fun TestScope.answerRequests(ok: Boolean = true) {
+            var answered = 0
+            while (true) {
+                runCurrent()
+                val pending = bridge.sent.drop(answered)
+                if (pending.isEmpty()) return
+                pending.forEach { text ->
+                    val id = REQUEST_ID.find(text)?.groupValues?.get(1) ?: return@forEach
+                    val error = if (ok) "" else ""","error":{"code":"stream_failed","message":"pane is controlled elsewhere"}"""
+                    bridge.push("""{"type":"result","id":"$id","ok":$ok$error}""")
+                }
+                answered += pending.size
+            }
+        }
+
+        fun sentTypes() = bridge.sent.map { REQUEST_TYPE.find(it)?.groupValues?.get(1) }
 
         private fun TerminalFrame.text() = bytes.decodeToString()
     }
@@ -176,7 +197,37 @@ class BridgeRepositoriesTest {
         assertTrue(rig.received.isEmpty())
     }
 
+    @Test
+    fun scrollToLatestTakesControlAtThePcSizeScrollsAndReleases() = runTest {
+        val rig = Rig(this)
+        with(rig) { openPane() }
+
+        val result = async { rig.terminal.scrollToLatest(PANE, GridSize(144, 39), lines = 1_500) }
+        with(rig) { answerRequests() }
+
+        assertEquals(CommandResult.Success, result.await())
+        assertEquals(listOf("take_control", "scroll", "scroll", "release_control"), rig.sentTypes())
+        val takeControl = rig.bridge.sent[0]
+        assertTrue(takeControl.contains(""""cols":144,"rows":39""") && !takeControl.contains("takeover"))
+        assertTrue(rig.bridge.sent[1].contains(""""direction":"down","lines":1000"""))
+        assertTrue(rig.bridge.sent[2].contains(""""lines":500"""))
+    }
+
+    @Test
+    fun scrollToLatestGivesUpWhenControlIsRefused() = runTest {
+        val rig = Rig(this)
+        with(rig) { openPane() }
+
+        val result = async { rig.terminal.scrollToLatest(PANE, GridSize(144, 39), lines = 10) }
+        with(rig) { answerRequests(ok = false) }
+
+        assertEquals(CommandResult.Failure("pane is controlled elsewhere"), result.await())
+        assertEquals(listOf("take_control"), rig.sentTypes())
+    }
+
     private companion object {
         const val PANE = "w1:p1"
+        val REQUEST_ID = Regex(""""id":"(m\d+)"""")
+        val REQUEST_TYPE = Regex(""""type":"(\w+)"""")
     }
 }

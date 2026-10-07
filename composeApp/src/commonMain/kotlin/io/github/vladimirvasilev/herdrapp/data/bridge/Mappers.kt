@@ -7,6 +7,7 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.dto.WorkspaceInfo
 import io.github.vladimirvasilev.herdrapp.domain.Agent
 import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
 import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
+import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.PaneHistory
 import io.github.vladimirvasilev.herdrapp.domain.Session
@@ -19,7 +20,9 @@ import kotlinx.serialization.json.contentOrNull
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentStatus as AgentStatusDto
 
 internal fun BridgeSnapshot.toSession(): Session {
-    val mapped = agents.map { it.toAgent(previews[it.paneId]) }
+    // herdr reports the scroll position on the pane entry only, not on the agent entry.
+    val scrollByPane = panes.associate { it.paneId to (it.scroll?.offsetFromBottom ?: 0) }
+    val mapped = agents.map { it.toAgent(previews[it.paneId], scrollByPane[it.paneId] ?: 0, paneSizes[it.paneId]) }
     return Session(
         workspaces = workspaces.map { it.toWorkspace() }.sortedBy { it.number },
         agents = AgentOrganizer.orderedAgents(mapped, workspaces.map { it.workspaceId }),
@@ -29,7 +32,7 @@ internal fun BridgeSnapshot.toSession(): Session {
 
 private fun WorkspaceInfo.toWorkspace() = Workspace(id = workspaceId, number = number, label = label, paneCount = paneCount)
 
-private fun AgentInfo.toAgent(preview: String?) = Agent(
+private fun AgentInfo.toAgent(preview: String?, scrolledBack: Int, pcSize: List<Int>?) = Agent(
     paneId = paneId,
     workspaceId = workspaceId,
     tabId = tabId,
@@ -37,6 +40,8 @@ private fun AgentInfo.toAgent(preview: String?) = Agent(
     title = terminalTitleStripped?.takeIf { it.isNotBlank() } ?: label?.takeIf { it.isNotBlank() } ?: agent ?: paneId,
     status = agentStatus.toDomain(),
     preview = preview,
+    scrolledBackLines = scrolledBack.coerceAtLeast(0),
+    pcGrid = pcSize?.takeIf { it.size == 2 && it[0] > 0 && it[1] > 0 }?.let { GridSize(cols = it[0], rows = it[1]) },
 )
 
 private fun PaneInfo.toPane() = Pane(

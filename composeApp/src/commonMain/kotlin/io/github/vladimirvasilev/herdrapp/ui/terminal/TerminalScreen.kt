@@ -25,6 +25,7 @@ private fun PaneNotice.text(): String = when (this) {
     PaneNotice.NoScrollback -> stringResource(Res.string.terminal_notice_no_scrollback)
     is PaneNotice.SendFailed -> stringResource(Res.string.terminal_notice_send_failed, reason)
     is PaneNotice.HistoryFailed -> stringResource(Res.string.terminal_notice_history_failed, reason)
+    is PaneNotice.JumpFailed -> stringResource(Res.string.terminal_notice_jump_failed, reason)
 }
 
 /** What one pane's screen can ask for. */
@@ -40,6 +41,7 @@ internal class PaneActions(
     val onTakeControl: () -> Unit,
     val onReleaseControl: () -> Unit,
     val onFontSizeChanged: (Float) -> Unit,
+    val onJumpToLatest: () -> Unit,
 )
 
 @Composable
@@ -76,7 +78,15 @@ internal fun TerminalScreen(
                 onFontSizeChanged = actions.onFontSizeChanged,
                 modifier = Modifier.fillMaxSize(),
             )
-            if (pane.history != null) HistoryOverlay(onLive = actions.onExitHistory)
+            if (pane.history != null) {
+                HistoryOverlay(onLive = actions.onExitHistory)
+            } else if (agent.scrolledBackLines > 0) {
+                ScrolledBackOverlay(
+                    lines = agent.scrolledBackLines,
+                    canJump = agent.pcGrid != null && !pane.jumping,
+                    onJump = actions.onJumpToLatest,
+                )
+            }
             if (pane.historyLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
             pane.notice?.let { Notice(it.text()) }
         }

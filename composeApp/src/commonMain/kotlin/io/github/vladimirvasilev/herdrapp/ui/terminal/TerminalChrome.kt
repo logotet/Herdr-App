@@ -74,6 +74,27 @@ internal fun BoxScope.HistoryOverlay(onLive: () -> Unit) {
     )
 }
 
+/** Shown over a live pane whose view on the PC is scrolled back, which hides all new output. */
+@Composable
+internal fun BoxScope.ScrolledBackOverlay(lines: Int, canJump: Boolean, onJump: () -> Unit) {
+    Row(
+        Modifier
+            .align(Alignment.TopCenter)
+            .fillMaxWidth()
+            .background(HerdrTheme.colors.bannerWarning)
+            .padding(start = 12.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(Res.string.terminal_scrolled_back, lines),
+            color = HerdrTheme.colors.onBannerWarning,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onJump, enabled = canJump) { Text(stringResource(Res.string.terminal_jump_to_latest)) }
+    }
+}
+
 @Composable
 internal fun BoxScope.Notice(text: String) {
     Text(

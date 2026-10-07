@@ -33,7 +33,9 @@ data class BridgeSnapshot(
     @SerialName("focused_workspace_id") val focusedWorkspaceId: String? = null,
     @SerialName("focused_tab_id") val focusedTabId: String? = null,
     @SerialName("focused_pane_id") val focusedPaneId: String? = null,
-    val previews: Map<String, String> = emptyMap()
+    val previews: Map<String, String> = emptyMap(),
+    /** `[cols, rows]` of each pane on the PC. */
+    @SerialName("pane_sizes") val paneSizes: Map<String, List<Int>> = emptyMap()
 )
 
 @Serializable
@@ -152,6 +154,8 @@ data class ReleaseControlRequest(val type: String = "release_control", val id: S
 data class InputRequest(val type: String = "input", val id: String? = null, @SerialName("pane_id") val paneId: String, val bytes: String)
 @Serializable
 data class ResizeRequest(val type: String = "resize", val id: String? = null, @SerialName("pane_id") val paneId: String, val cols: Int, val rows: Int)
+@Serializable
+data class ScrollRequest(val type: String = "scroll", val id: String? = null, @SerialName("pane_id") val paneId: String, val direction: String, val lines: Int)
 @Serializable
 data class CallRequest(val type: String = "call", val id: String? = null, val method: String, val params: JsonElement)
 

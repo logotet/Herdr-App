@@ -31,6 +31,7 @@ sealed interface PaneNotice {
     data object NoScrollback : PaneNotice
     data class SendFailed(val reason: String) : PaneNotice
     data class HistoryFailed(val reason: String) : PaneNotice
+    data class JumpFailed(val reason: String) : PaneNotice
 }
 
 data class PaneUiState(
@@ -41,6 +42,8 @@ data class PaneUiState(
     val historyLoading: Boolean = false,
     val notice: PaneNotice? = null,
     val sending: Boolean = false,
+    /** True while the pane on the PC is being scrolled to its newest output. */
+    val jumping: Boolean = false,
 )
 
 data class TerminalUiState(
@@ -58,7 +61,7 @@ private val DEFAULT_GRID = 80 to 24
 
 /** State and actions for the pager of agent panes. Every pane is addressed by its pane id. */
 internal class TerminalViewModel(
-    session: SessionRepository,
+    private val session: SessionRepository,
     private val terminal: TerminalRepository,
     private val settings: SettingsRepository,
     private val timeSource: TimeSource = TimeSource.Monotonic,
@@ -149,6 +152,22 @@ internal class TerminalViewModel(
     }
 
     fun exitHistory(paneId: String) = update(paneId) { it.copy(history = null) }
+
+    /** Scrolls a pane that is scrolled back on the PC to its newest output, so it is live again. */
+    fun jumpToLatest(paneId: String) {
+        val agent = session.session.value.agents.firstOrNull { it.paneId == paneId } ?: return
+        val pcGrid = agent.pcGrid ?: return
+        if (agent.scrolledBackLines <= 0 || (panes.value[paneId] ?: PaneUiState()).jumping) return
+        update(paneId) { it.copy(jumping = true) }
+        viewModelScope.launch {
+            when (val result = terminal.scrollToLatest(paneId, pcGrid, agent.scrolledBackLines)) {
+                // Ask for a fresh snapshot, so the scrolled-back state clears without waiting for a poll.
+                CommandResult.Success -> session.refresh()
+                is CommandResult.Failure -> notify(paneId, PaneNotice.JumpFailed(result.message))
+            }
+            update(paneId) { it.copy(jumping = false) }
+        }
+    }
 
     /** Raw keyboard bytes from the terminal view; dropped unless this client has control. */
     fun onInput(paneId: String, bytes: ByteArray) {

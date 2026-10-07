@@ -8,6 +8,7 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.dto.OpenStreamRequest
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.RefreshRequest
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ReleaseControlRequest
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ResizeRequest
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ScrollRequest
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.TakeControlRequest
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
@@ -166,6 +167,10 @@ class BridgeConnection(
 
     suspend fun resize(paneId: String, cols: Int, rows: Int): RequestOutcome =
         request { id -> BridgeJson.encode(ResizeRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
+
+    /** Scrolls the pane's view on the PC towards the newest output. The bridge needs control for it. */
+    suspend fun scrollDown(paneId: String, lines: Int): RequestOutcome =
+        request { id -> BridgeJson.encode(ScrollRequest(id = id, paneId = paneId, direction = "down", lines = lines)) }
 
     suspend fun sendKeys(paneId: String, keys: List<String>): RequestOutcome {
         val params = buildJsonObject {

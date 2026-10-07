@@ -37,4 +37,11 @@ interface TerminalRepository {
     /** Types [text] and presses Enter; works without control. */
     suspend fun submitPrompt(paneId: String, text: String): CommandResult
     suspend fun readHistory(paneId: String): HistoryResult
+
+    /**
+     * Brings a pane that is scrolled back by [lines] on the PC to its newest output. herdr only
+     * scrolls for a controller, so this takes control at [pcGrid], the pane's own size, which
+     * resizes nothing, and releases it again. It never takes control away from someone else.
+     */
+    suspend fun scrollToLatest(paneId: String, pcGrid: GridSize, lines: Int): CommandResult
 }

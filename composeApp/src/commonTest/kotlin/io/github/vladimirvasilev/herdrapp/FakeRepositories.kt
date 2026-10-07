@@ -2,6 +2,7 @@ package io.github.vladimirvasilev.herdrapp
 
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
+import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
 import io.github.vladimirvasilev.herdrapp.domain.HostRepository
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
@@ -59,6 +60,7 @@ class FakeTerminalRepository : TerminalRepository {
     val calls = mutableListOf<String>()
     var submitResult: CommandResult = CommandResult.Success
     var historyResult: HistoryResult = HistoryResult.Empty
+    var scrollResult: CommandResult = CommandResult.Success
 
     override fun frames(paneId: String): Flow<TerminalFrame> = emptyFlow()
 
@@ -102,5 +104,10 @@ class FakeTerminalRepository : TerminalRepository {
     override suspend fun readHistory(paneId: String): HistoryResult {
         calls += "history $paneId"
         return historyResult
+    }
+
+    override suspend fun scrollToLatest(paneId: String, pcGrid: GridSize, lines: Int): CommandResult {
+        calls += "scrollToLatest $paneId ${pcGrid.cols}x${pcGrid.rows} $lines"
+        return scrollResult
     }
 }

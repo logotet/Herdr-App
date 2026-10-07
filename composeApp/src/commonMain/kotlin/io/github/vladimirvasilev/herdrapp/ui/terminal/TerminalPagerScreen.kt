@@ -74,4 +74,5 @@ private fun TerminalViewModel.actionsFor(paneId: String, onBack: () -> Unit) = P
     onTakeControl = { takeControl(paneId) },
     onReleaseControl = { releaseControl(paneId) },
     onFontSizeChanged = ::setFontSize,
+    onJumpToLatest = { jumpToLatest(paneId) },
 )

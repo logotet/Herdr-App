@@ -7,6 +7,7 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.SocketStatus
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
 import io.github.vladimirvasilev.herdrapp.data.bridge.parsePaneRead
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
+import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
 import io.github.vladimirvasilev.herdrapp.domain.StreamMode
 import io.github.vladimirvasilev.herdrapp.domain.TerminalFrame
@@ -25,6 +26,9 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.StreamMode as StreamModeDto
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.TerminalFrame as FrameDto
+
+/** The most lines the bridge scrolls in one request. */
+private const val MAX_SCROLL_LINES = 1000
 
 /**
  * Terminal streams over the bridge. [dispatcher] is the connection's single-threaded dispatcher;
@@ -97,16 +101,35 @@ class BridgeTerminalRepository(
     }
 
     override suspend fun submitPrompt(paneId: String, text: String): CommandResult =
-        when (val outcome = connection.submitPrompt(paneId, text)) {
-            is RequestOutcome.Success -> CommandResult.Success
-            is RequestOutcome.Failure -> CommandResult.Failure(outcome.error.message ?: outcome.error.code)
-        }
+        connection.submitPrompt(paneId, text).toCommandResult()
 
     override suspend fun readHistory(paneId: String): HistoryResult =
         when (val outcome = connection.readHistory(paneId)) {
             is RequestOutcome.Success -> parsePaneRead(outcome.data)?.let { HistoryResult.Loaded(it) } ?: HistoryResult.Empty
             is RequestOutcome.Failure -> HistoryResult.Failed(outcome.error.message ?: outcome.error.code)
         }
+
+    override suspend fun scrollToLatest(paneId: String, pcGrid: GridSize, lines: Int): CommandResult {
+        val alreadyControlling = streamModes.value[paneId] == StreamMode.CONTROL
+        if (!alreadyControlling) {
+            val taken = connection.takeControl(paneId, pcGrid.cols, pcGrid.rows, takeover = false)
+            if (taken is RequestOutcome.Failure) return taken.toCommandResult()
+        }
+        var remaining = lines
+        var outcome: RequestOutcome = RequestOutcome.Success(null)
+        while (remaining > 0 && outcome is RequestOutcome.Success) {
+            val step = minOf(remaining, MAX_SCROLL_LINES)
+            outcome = connection.scrollDown(paneId, step)
+            remaining -= step
+        }
+        if (!alreadyControlling) connection.releaseControl(paneId)
+        return outcome.toCommandResult()
+    }
+
+    private fun RequestOutcome.toCommandResult(): CommandResult = when (this) {
+        is RequestOutcome.Success -> CommandResult.Success
+        is RequestOutcome.Failure -> CommandResult.Failure(error.message ?: error.code)
+    }
 
     override suspend fun onStatus(status: SocketStatus) {
         when (status) {

@@ -1,9 +1,13 @@
 package io.github.vladimirvasilev.herdrapp
 
 import androidx.compose.ui.text.input.TextFieldValue
+import io.github.vladimirvasilev.herdrapp.domain.Agent
+import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
+import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
 import io.github.vladimirvasilev.herdrapp.domain.PaneHistory
+import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.StreamMode
 import io.github.vladimirvasilev.herdrapp.ui.terminal.KeySpec
 import io.github.vladimirvasilev.herdrapp.ui.terminal.PaneNotice
@@ -25,11 +29,13 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TerminalViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val terminal = FakeTerminalRepository()
+    private val session = FakeSessionRepository()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -38,7 +44,7 @@ class TerminalViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private fun TestScope.viewModel(): TerminalViewModel {
-        val viewModel = TerminalViewModel(FakeSessionRepository(), terminal, FakeSettingsRepository(), testTimeSource)
+        val viewModel = TerminalViewModel(session, terminal, FakeSettingsRepository(), testTimeSource)
         backgroundScope.launch { viewModel.uiState.collect {} }
         return viewModel
     }
@@ -157,6 +163,49 @@ class TerminalViewModelTest {
         runCurrent()
 
         assertEquals("takeControl $PANE 45x30", terminal.calls.last())
+    }
+
+    private fun scrolledBack(lines: Int, pcGrid: GridSize? = GridSize(144, 39)) = Session(
+        agents = listOf(Agent(PANE, "w1", null, "claude", "Fix tests", AgentStatus.IDLE, null, lines, pcGrid)),
+    )
+
+    @Test
+    fun jumpToLatestScrollsThePcPaneAndAsksForAFreshSnapshot() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        session.session.value = scrolledBack(499)
+
+        viewModel.jumpToLatest(PANE)
+        viewModel.jumpToLatest(PANE)
+        runCurrent()
+
+        assertEquals(listOf("scrollToLatest $PANE 144x39 499"), terminal.calls)
+        assertEquals(1, session.refreshes)
+        assertEquals(PaneUiState(), pane(viewModel))
+    }
+
+    @Test
+    fun jumpToLatestDoesNothingWhenThePaneIsLiveOrItsPcSizeIsUnknown() = runTest(dispatcher) {
+        val viewModel = viewModel()
+
+        session.session.value = scrolledBack(0)
+        viewModel.jumpToLatest(PANE)
+        session.session.value = scrolledBack(499, pcGrid = null)
+        viewModel.jumpToLatest(PANE)
+        runCurrent()
+
+        assertTrue(terminal.calls.isEmpty())
+    }
+
+    @Test
+    fun aFailedJumpIsReported() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        session.session.value = scrolledBack(499)
+        terminal.scrollResult = CommandResult.Failure("pane is controlled elsewhere")
+
+        viewModel.jumpToLatest(PANE)
+
+        assertEquals(PaneNotice.JumpFailed("pane is controlled elsewhere"), pane(viewModel).notice)
+        assertEquals(0, session.refreshes)
     }
 
     private companion object {

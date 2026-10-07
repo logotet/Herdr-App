@@ -20,7 +20,16 @@ data class Agent(
     val status: AgentStatus,
     /** The last few lines of the pane as plain text, when the bridge sent them. */
     val preview: String?,
+    /**
+     * How far the pane is scrolled back on the PC. While this is above zero the stream shows old
+     * output and nothing new, because herdr only streams the part of a pane that is visible.
+     */
+    val scrolledBackLines: Int = 0,
+    /** The pane's size on the PC, when herdr knows it (it may not for panes in hidden tabs). */
+    val pcGrid: GridSize? = null,
 )
+
+data class GridSize(val cols: Int, val rows: Int)
 
 data class Pane(
     val paneId: String,
