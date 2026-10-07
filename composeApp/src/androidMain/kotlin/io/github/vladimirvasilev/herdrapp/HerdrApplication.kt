@@ -2,13 +2,10 @@ package io.github.vladimirvasilev.herdrapp
 
 import android.app.Application
 import io.github.vladimirvasilev.herdrapp.network.BridgeConnection
-import io.github.vladimirvasilev.herdrapp.protocol.BridgeJson
 import io.github.vladimirvasilev.herdrapp.state.HerdrStore
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,7 +21,6 @@ class HerdrApplication : Application() {
     val connection by lazy {
         val client = HttpClient(OkHttp) {
             install(WebSockets)
-            install(ContentNegotiation) { json(BridgeJson.json) }
         }
         BridgeConnection(client, store, appScope)
     }
