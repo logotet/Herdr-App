@@ -15,6 +15,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.viewinterop.AndroidView
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
@@ -73,7 +74,8 @@ actual fun TerminalPane(
 
     // A pager page can be reused for another pane; give each pane its own view and session.
     key(paneId) { AndroidView(
-        modifier = modifier,
+        // Zoomed or panned content is drawn outside the view's bounds; keep it off the bars around it.
+        modifier = modifier.clipToBounds(),
         factory = { context ->
             TerminalView(context, null).apply {
                 isFocusable = true
