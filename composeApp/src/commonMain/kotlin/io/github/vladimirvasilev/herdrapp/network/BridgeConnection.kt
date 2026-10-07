@@ -37,8 +37,12 @@ class BridgeConnection(
 
     fun connect(host: SavedHost) {
         _currentHost.value = host
-        job?.cancel()
-        job = scope.launch { loop(host) }
+        val previous = job
+        job = scope.launch {
+            // Wait for the old socket to close so switching hosts never leaves two connections.
+            previous?.cancelAndJoin()
+            loop(host)
+        }
     }
 
     fun disconnect() {
