@@ -50,6 +50,28 @@ internal fun LayoutDialog(dialog: HomeDialog, onConfirm: (name: String) -> Unit,
             onConfirm = onConfirm,
             onDismiss = onDismiss,
         )
+        HomeDialog.NewWorkspace -> NameDialog(
+            title = stringResource(Res.string.home_new_workspace_title),
+            initial = "",
+            confirm = stringResource(Res.string.home_create),
+            nameRequired = false,
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+        )
+        is HomeDialog.RenameWorkspace -> NameDialog(
+            title = stringResource(Res.string.home_rename_workspace_title),
+            initial = dialog.current,
+            confirm = stringResource(Res.string.home_rename),
+            nameRequired = true,
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+        )
+        is HomeDialog.CloseWorkspace -> CloseDialog(
+            title = stringResource(Res.string.home_close_workspace_title, dialog.label),
+            body = stringResource(Res.string.home_close_workspace_body, dialog.paneCount),
+            onConfirm = { onConfirm("") },
+            onDismiss = onDismiss,
+        )
         is HomeDialog.ClosePane -> CloseDialog(
             title = stringResource(Res.string.home_close_pane_title, dialog.title),
             body = stringResource(Res.string.home_close_pane_body),

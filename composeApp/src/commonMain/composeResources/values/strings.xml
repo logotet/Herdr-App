@@ -31,6 +31,11 @@
     <string name="home_close_pane_body">The program running in this pane is stopped on the PC. This cannot be undone.</string>
     <string name="home_close_tab_title">Close tab “%1$s”?</string>
     <string name="home_close_tab_body">Every pane in this tab is closed and its programs are stopped on the PC. This cannot be undone.</string>
+    <string name="home_new_workspace">New workspace</string>
+    <string name="home_new_workspace_title">New workspace</string>
+    <string name="home_rename_workspace_title">Rename workspace</string>
+    <string name="home_close_workspace_title">Close workspace “%1$s”?</string>
+    <string name="home_close_workspace_body">All %1$d panes in this workspace are closed and their programs are stopped on the PC. This cannot be undone.</string>
     <string name="home_change_failed">Could not change the layout: %1$s</string>
     <string name="home_agent_unknown_kind">agent</string>
     <string name="home_no_hosts_title">No bridge host paired</string>

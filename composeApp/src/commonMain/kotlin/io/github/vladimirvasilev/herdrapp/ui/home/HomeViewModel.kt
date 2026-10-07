@@ -28,7 +28,13 @@ sealed interface HomeDialog {
     data class NewTab(val workspaceId: String, val workspaceLabel: String) : HomeDialog
     data class RenameTab(val tabId: String, val current: String) : HomeDialog
     data class CloseTab(val tabId: String, val label: String) : HomeDialog
+    data object NewWorkspace : HomeDialog
+    data class RenameWorkspace(val workspaceId: String, val current: String) : HomeDialog
+    data class CloseWorkspace(val workspaceId: String, val label: String, val paneCount: Int) : HomeDialog
 }
+
+private val HomeDialog.needsName: Boolean
+    get() = this is HomeDialog.RenamePane || this is HomeDialog.RenameTab || this is HomeDialog.RenameWorkspace
 
 data class HomeUiState(
     val connection: ConnectionState = ConnectionState.Disconnected,
@@ -94,12 +100,12 @@ class HomeViewModel(
 
     /**
      * The user confirmed the open dialog; [name] is what they typed, for the dialogs that ask for
-     * one. A rename needs a name. A new tab may go without and is then named by herdr.
+     * one. A rename needs a name. A new tab or workspace may go without and is then named by herdr.
      */
     fun confirmDialog(name: String = "") {
         val dialog = local.value.dialog ?: return
         val trimmed = name.trim()
-        if ((dialog is HomeDialog.RenamePane || dialog is HomeDialog.RenameTab) && trimmed.isEmpty()) return
+        if (dialog.needsName && trimmed.isEmpty()) return
         dismissDialog()
         viewModelScope.launch {
             val result = when (dialog) {
@@ -108,6 +114,9 @@ class HomeViewModel(
                 is HomeDialog.NewTab -> session.createTab(dialog.workspaceId, trimmed.ifEmpty { null })
                 is HomeDialog.RenameTab -> session.renameTab(dialog.tabId, trimmed)
                 is HomeDialog.CloseTab -> session.closeTab(dialog.tabId)
+                HomeDialog.NewWorkspace -> session.createWorkspace(trimmed.ifEmpty { null })
+                is HomeDialog.RenameWorkspace -> session.renameWorkspace(dialog.workspaceId, trimmed)
+                is HomeDialog.CloseWorkspace -> session.closeWorkspace(dialog.workspaceId)
             }
             if (result is CommandResult.Failure) reportFailure(result.message)
         }

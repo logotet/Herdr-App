@@ -117,6 +117,23 @@ class HomeAndHostsViewModelTest {
     }
 
     @Test
+    fun workspacesAreCreatedRenamedAndClosed() = runTest(dispatcher) {
+        val viewModel = home()
+
+        confirm(viewModel, HomeDialog.NewWorkspace, "scratch")
+        confirm(viewModel, HomeDialog.NewWorkspace)
+        confirm(viewModel, HomeDialog.RenameWorkspace("w1", "old"), "mobile")
+        confirm(viewModel, HomeDialog.RenameWorkspace("w1", "old"), " ")
+        viewModel.dismissDialog()
+        confirm(viewModel, HomeDialog.CloseWorkspace("w1", "mobile", paneCount = 4))
+
+        assertEquals(
+            listOf("createWorkspace scratch", "createWorkspace null", "renameWorkspace w1 mobile", "closeWorkspace w1"),
+            session.changes,
+        )
+    }
+
+    @Test
     fun aRenameWithoutANameIsNotSent() = runTest(dispatcher) {
         val viewModel = home()
         val dialog = HomeDialog.RenamePane("w1:p1", "old")

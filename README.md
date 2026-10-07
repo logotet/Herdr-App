@@ -12,7 +12,7 @@ The Android app id is `io.github.vladimirvasilev.herdrapp`; minSdk is 34.
 
 ## Changing the layout
 
-On the workspace list, long-press a pane or a tab name to rename or close it, and tap **+** on a workspace to add a tab with a shell. These are herdr `pane.rename`, `pane.close`, `tab.create`, `tab.rename` and `tab.close`. Closing stops the program in the pane on the PC and cannot be undone, so the app asks first.
+On the workspace list, long-press a pane, a tab name or a workspace to rename or close it. Tap **+** on a workspace to add a tab with a shell, and **+** at the top to add a workspace in herdr's default folder. These are herdr's `rename`, `close` and `create` calls for panes, tabs and workspaces. Closing stops the programs on the PC and cannot be undone, so the app asks first.
 
 ## Using a pane
 

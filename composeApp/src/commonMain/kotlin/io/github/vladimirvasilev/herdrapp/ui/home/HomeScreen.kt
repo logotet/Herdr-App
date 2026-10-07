@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.runtime.getValue
@@ -92,7 +95,13 @@ internal fun HomeScreen(
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item { HeaderRow(stringResource(Res.string.home_title), stringResource(Res.string.home_refresh_hint)) }
+            item {
+                HeaderRow(
+                    title = stringResource(Res.string.home_title),
+                    subtitle = stringResource(Res.string.home_refresh_hint),
+                    onNewWorkspace = { onDialog(HomeDialog.NewWorkspace) },
+                )
+            }
             if (state.needsYou.isNotEmpty()) {
                 item { SectionTitle(stringResource(Res.string.home_needs_you)) }
                 items(state.needsYou, key = { "needs-${it.paneId}" }) { PaneEntry(it, onOpen, onDialog) }
@@ -126,8 +135,8 @@ private fun EmptyHosts(onHosts: () -> Unit) {
 }
 
 @Composable
-private fun HeaderRow(title: String, subtitle: String) {
-    Row(verticalAlignment = Alignment.Bottom) {
+private fun HeaderRow(title: String, subtitle: String, onNewWorkspace: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             title,
             style = MaterialTheme.typography.headlineMedium,
@@ -135,6 +144,12 @@ private fun HeaderRow(title: String, subtitle: String) {
             modifier = Modifier.weight(1f),
         )
         Text(subtitle, style = MaterialTheme.typography.bodySmall, color = HerdrTheme.colors.muted)
+        IconButton(onClick = onNewWorkspace) {
+            Icon(
+                painterResource(Res.drawable.ic_add),
+                contentDescription = stringResource(Res.string.home_new_workspace),
+            )
+        }
     }
 }
 

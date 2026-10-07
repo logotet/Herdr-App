@@ -2,7 +2,6 @@ package io.github.vladimirvasilev.herdrapp.ui.home
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -54,12 +53,20 @@ internal fun LazyListScope.workspaceSection(
 ) {
     val workspaceId = group.workspace.id
     item(key = "ws-$workspaceId") {
-        WorkspaceHeader(
-            group = group,
-            collapsed = collapsed,
-            onToggle = onToggle,
-            onNewTab = { onDialog(HomeDialog.NewTab(workspaceId, group.workspace.label)) },
-        )
+        val workspace = group.workspace
+        LongPressMenu(
+            name = workspace.label,
+            onRename = { onDialog(HomeDialog.RenameWorkspace(workspaceId, workspace.label)) },
+            onClose = { onDialog(HomeDialog.CloseWorkspace(workspaceId, workspace.label, workspace.paneCount)) },
+        ) { onLongPress ->
+            WorkspaceHeader(
+                group = group,
+                collapsed = collapsed,
+                onToggle = onToggle,
+                onLongPress = onLongPress,
+                onNewTab = { onDialog(HomeDialog.NewTab(workspaceId, workspace.label)) },
+            )
+        }
     }
     if (collapsed) return
     group.tabs.forEach { tabGroup ->
@@ -121,11 +128,18 @@ private fun LongPressMenu(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun WorkspaceHeader(group: WorkspaceGroup, collapsed: Boolean, onToggle: () -> Unit, onNewTab: () -> Unit) {
+private fun WorkspaceHeader(
+    group: WorkspaceGroup,
+    collapsed: Boolean,
+    onToggle: () -> Unit,
+    onLongPress: () -> Unit,
+    onNewTab: () -> Unit,
+) {
     val workspace = group.workspace
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(top = 6.dp),
+        Modifier.fillMaxWidth().combinedClickable(onClick = onToggle, onLongClick = onLongPress).padding(top = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         group.status?.let { status ->
