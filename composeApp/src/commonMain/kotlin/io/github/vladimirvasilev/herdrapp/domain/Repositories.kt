@@ -13,6 +13,15 @@ interface SessionRepository {
 
     fun connect(host: SavedHost)
     suspend fun refresh()
+
+    suspend fun renamePane(paneId: String, label: String): CommandResult
+    /** Closes the pane on the PC and stops the program running in it. This cannot be undone. */
+    suspend fun closePane(paneId: String): CommandResult
+    /** Adds a tab with one shell pane to the workspace; [label] is its name, when given. */
+    suspend fun createTab(workspaceId: String, label: String?): CommandResult
+    suspend fun renameTab(tabId: String, label: String): CommandResult
+    /** Closes the tab on the PC with every pane in it. This cannot be undone. */
+    suspend fun closeTab(tabId: String): CommandResult
 }
 
 /** Live terminal streams and the input that can be sent to a pane. */

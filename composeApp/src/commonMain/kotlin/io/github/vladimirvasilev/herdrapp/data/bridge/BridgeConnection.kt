@@ -188,6 +188,29 @@ class BridgeConnection(
         return call("pane.send_text", params)
     }
 
+    suspend fun renamePane(paneId: String, label: String): RequestOutcome =
+        call("pane.rename", buildJsonObject { put("pane_id", paneId); put("label", label) })
+
+    /** Closes the pane and stops the program running in it. */
+    suspend fun closePane(paneId: String): RequestOutcome =
+        call("pane.close", buildJsonObject { put("pane_id", paneId) })
+
+    /** Adds a tab with one shell pane to the workspace, without moving the focus on the PC. */
+    suspend fun createTab(workspaceId: String, label: String?): RequestOutcome {
+        val params = buildJsonObject {
+            put("workspace_id", workspaceId)
+            if (label != null) put("label", label)
+        }
+        return call("tab.create", params)
+    }
+
+    suspend fun renameTab(tabId: String, label: String): RequestOutcome =
+        call("tab.rename", buildJsonObject { put("tab_id", tabId); put("label", label) })
+
+    /** Closes the tab with every pane in it. */
+    suspend fun closeTab(tabId: String): RequestOutcome =
+        call("tab.close", buildJsonObject { put("tab_id", tabId) })
+
     /** Types [text] into the pane and presses Enter in one herdr call; works without control. */
     suspend fun submitPrompt(paneId: String, text: String): RequestOutcome {
         val params = buildJsonObject {

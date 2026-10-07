@@ -2,9 +2,12 @@ package io.github.vladimirvasilev.herdrapp.data
 
 import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
 import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeListener
+import io.github.vladimirvasilev.herdrapp.data.bridge.RequestOutcome
 import io.github.vladimirvasilev.herdrapp.data.bridge.SocketStatus
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
+import io.github.vladimirvasilev.herdrapp.data.bridge.toCommandResult
 import io.github.vladimirvasilev.herdrapp.data.bridge.toSession
+import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.Session
@@ -26,6 +29,23 @@ class BridgeSessionRepository(private val connection: BridgeConnection) : Sessio
 
     override suspend fun refresh() {
         connection.refresh()
+    }
+
+    override suspend fun renamePane(paneId: String, label: String) = changed(connection.renamePane(paneId, label))
+
+    override suspend fun closePane(paneId: String) = changed(connection.closePane(paneId))
+
+    override suspend fun createTab(workspaceId: String, label: String?) =
+        changed(connection.createTab(workspaceId, label))
+
+    override suspend fun renameTab(tabId: String, label: String) = changed(connection.renameTab(tabId, label))
+
+    override suspend fun closeTab(tabId: String) = changed(connection.closeTab(tabId))
+
+    /** After a change to the layout, asks for a snapshot instead of waiting for the bridge to notice. */
+    private suspend fun changed(outcome: RequestOutcome): CommandResult {
+        if (outcome is RequestOutcome.Success) connection.refresh()
+        return outcome.toCommandResult()
     }
 
     override suspend fun onStatus(status: SocketStatus) {

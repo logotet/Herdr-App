@@ -6,6 +6,7 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.RequestOutcome
 import io.github.vladimirvasilev.herdrapp.data.bridge.SocketStatus
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
 import io.github.vladimirvasilev.herdrapp.data.bridge.parsePaneRead
+import io.github.vladimirvasilev.herdrapp.data.bridge.toCommandResult
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
@@ -123,11 +124,6 @@ class BridgeTerminalRepository(
         }
         if (!alreadyControlling) connection.releaseControl(paneId)
         return outcome.toCommandResult()
-    }
-
-    private fun RequestOutcome.toCommandResult(): CommandResult = when (this) {
-        is RequestOutcome.Success -> CommandResult.Success
-        is RequestOutcome.Failure -> CommandResult.Failure(error.message ?: error.code)
     }
 
     override suspend fun onStatus(status: SocketStatus) {

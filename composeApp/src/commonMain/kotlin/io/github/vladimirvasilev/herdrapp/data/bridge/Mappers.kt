@@ -7,6 +7,7 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.dto.WorkspaceInfo
 import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
 import io.github.vladimirvasilev.herdrapp.domain.AgentState
 import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
+import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.PaneHistory
@@ -65,6 +66,11 @@ private fun AgentStatusDto.toDomain() = when (this) {
     AgentStatusDto.BLOCKED -> AgentStatus.BLOCKED
     AgentStatusDto.DONE -> AgentStatus.DONE
     AgentStatusDto.UNKNOWN -> AgentStatus.UNKNOWN
+}
+
+internal fun RequestOutcome.toCommandResult(): CommandResult = when (this) {
+    is RequestOutcome.Success -> CommandResult.Success
+    is RequestOutcome.Failure -> CommandResult.Failure(error.message ?: error.code)
 }
 
 /** Parses the bridge `call` result of herdr `pane.read` (`{"type":"pane_read","read":{...}}`). */

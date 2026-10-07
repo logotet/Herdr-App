@@ -32,6 +32,25 @@ class FakeSessionRepository : SessionRepository {
     override suspend fun refresh() {
         refreshes++
     }
+
+    /** Layout changes as one line each, for example "renamePane w1:p1 tests". */
+    val changes = mutableListOf<String>()
+    var changeResult: CommandResult = CommandResult.Success
+
+    override suspend fun renamePane(paneId: String, label: String) = change("renamePane $paneId $label")
+
+    override suspend fun closePane(paneId: String) = change("closePane $paneId")
+
+    override suspend fun createTab(workspaceId: String, label: String?) = change("createTab $workspaceId $label")
+
+    override suspend fun renameTab(tabId: String, label: String) = change("renameTab $tabId $label")
+
+    override suspend fun closeTab(tabId: String) = change("closeTab $tabId")
+
+    private fun change(line: String): CommandResult {
+        changes += line
+        return changeResult
+    }
 }
 
 class FakeHostRepository(initial: List<SavedHost> = emptyList()) : HostRepository {

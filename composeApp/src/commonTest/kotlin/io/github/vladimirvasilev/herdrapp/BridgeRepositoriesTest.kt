@@ -225,6 +225,51 @@ class BridgeRepositoriesTest {
         assertEquals(listOf("take_control"), rig.sentTypes())
     }
 
+    @Test
+    fun layoutChangesAreHerdrCallsFollowedByARefresh() = runTest {
+        val rig = Rig(this)
+        with(rig) { openPane() }
+
+        val results = async {
+            listOf(
+                rig.session.renamePane(PANE, "tests"),
+                rig.session.closePane(PANE),
+                rig.session.createTab("w1", "scratch"),
+                rig.session.createTab("w1", null),
+                rig.session.renameTab("w1:t1", "git"),
+                rig.session.closeTab("w1:t1"),
+            )
+        }
+        with(rig) { answerRequests() }
+
+        assertTrue(results.await().all { it == CommandResult.Success })
+        val calls = rig.bridge.sent.filter { it.contains(""""type":"call"""") }.map { it.substringAfter(""""method":""") }
+        assertEquals(
+            listOf(
+                """"pane.rename","params":{"pane_id":"w1:p1","label":"tests"}}""",
+                """"pane.close","params":{"pane_id":"w1:p1"}}""",
+                """"tab.create","params":{"workspace_id":"w1","label":"scratch"}}""",
+                """"tab.create","params":{"workspace_id":"w1"}}""",
+                """"tab.rename","params":{"tab_id":"w1:t1","label":"git"}}""",
+                """"tab.close","params":{"tab_id":"w1:t1"}}""",
+            ),
+            calls,
+        )
+        assertEquals(6, rig.sentTypes().count { it == "refresh" })
+    }
+
+    @Test
+    fun aRefusedLayoutChangeIsAFailureWithoutARefresh() = runTest {
+        val rig = Rig(this)
+        with(rig) { openPane() }
+
+        val result = async { rig.session.closePane(PANE) }
+        with(rig) { answerRequests(ok = false) }
+
+        assertEquals(CommandResult.Failure("pane is controlled elsewhere"), result.await())
+        assertEquals(listOf("call"), rig.sentTypes())
+    }
+
     private companion object {
         const val PANE = "w1:p1"
         val REQUEST_ID = Regex(""""id":"(m\d+)"""")
