@@ -35,6 +35,8 @@ private const val HISTORY_TRANSCRIPT_ROWS = 6000
 private const val HIDE_CURSOR = "\u001b[?25l"
 private const val MIN_FONT_SP = 8f
 private const val MAX_FONT_SP = 28f
+// How far a downward drag must travel before it opens history, so diagonal swipes don't.
+private const val HISTORY_PULL_DP = 40f
 
 @OptIn(ExperimentalEncodingApi::class)
 @Composable
@@ -84,6 +86,8 @@ actual fun TerminalPane(
                 bridge.exitHistory = Runnable { currentOnExitHistory.value() }
                 setTerminalViewClient(bridge)
                 bridge.applyFontSize(this, fontSizeSp)
+                setFitToWidth(true)
+                setRemoteScrollThreshold(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, HISTORY_PULL_DP, resources.displayMetrics).roundToInt())
                 attachSession(bridge.session)
                 setRemoteScrollListener(bridge.liveScrollListener)
             }

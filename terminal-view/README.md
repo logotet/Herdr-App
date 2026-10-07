@@ -8,3 +8,6 @@ Modifications for Herdr App (`TerminalView.java` only):
 - `setRemoteScrollListener()`: scroll gestures go to the app instead of the local transcript (the live view uses this to open history).
 - `setScrollPastBottomListener()`: called when the user keeps scrolling down at the bottom of the local transcript (leaves history).
 - `onCheckIsTextEditor()` returns true only while the session accepts input (control mode).
+- Per-gesture axis lock: vertical drags and pinches are claimed from the parent (the pane pager); horizontal drags are left to it unless zoomed content can pan.
+- `setRemoteScrollThreshold()`: a touch drag is reported to the `RemoteScrollListener` once per gesture, after this distance.
+- `setFitToWidth()`: a grid wider than the view is scaled down to fit; pinch or double tap zooms, a drag pans.

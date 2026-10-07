@@ -1,7 +1,9 @@
 /*
  * Vendored from termux/termux-app (Apache License 2.0), commit 8629e63.
  * Modified for Herdr App: RemoteScrollListener and ScrollPastBottomListener hooks in doScroll(),
- * and onCheckIsTextEditor() follows TerminalSession#isInputEnabled().
+ * onCheckIsTextEditor() follows TerminalSession#isInputEnabled(), a per-gesture axis lock so a
+ * parent pager and vertical scrolling don't fight, and an optional fit-to-width display transform
+ * (scale, pinch zoom, pan) for remote grids wider than the view.
  */
 package com.termux.view;
 
@@ -30,6 +32,7 @@ import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.accessibility.AccessibilityManager;
 import android.view.autofill.AutofillManager;
@@ -88,6 +91,21 @@ public final class TerminalView extends View {
     /** What was left in from scrolling movement. */
     float mScrollRemainder;
 
+    // Herdr App: per-gesture axis lock. Vertical drags and pinches are claimed from the parent
+    // (e.g. a pager); horizontal drags are left to it unless the zoomed content can pan that way.
+    private static final int AXIS_NONE = 0, AXIS_VERTICAL = 1, AXIS_HORIZONTAL = 2, AXIS_PAN_HORIZONTAL = 3, AXIS_MULTI = 4;
+    private int mGestureAxis = AXIS_NONE;
+    private float mGestureDownX, mGestureDownY, mGestureLastX;
+    /** Smaller than the parent's touch slop so the decision is made before a pager starts dragging. */
+    private final int mAxisLockSlop;
+    private float mGesturePullPx;
+    private boolean mPullReported;
+    private int mRemoteScrollThresholdPx;
+
+    // Herdr App: fit-to-width display transform (screen = content * mDisplayScale - pan).
+    private boolean mFitToWidth;
+    private float mFitScale = 1f, mZoom = 1f, mDisplayScale = 1f, mPanX, mPanY;
+    private boolean mStickToBottom = true;
     /** If non-zero, this is the last unicode code point received if that was a combining character. */
     int mCombiningAccent;
 
@@ -181,10 +199,15 @@ public final class TerminalView extends View {
                     // which we do not do for touch input, only mouse in onTouchEvent().
                     sendMouseEventCode(e, TerminalEmulator.MOUSE_LEFT_BUTTON_MOVED, true);
                 } else {
+                    // Herdr App: only a drag locked to the vertical axis scrolls; horizontal ones belong to the pager or pan.
+                    if (!e.isFromSource(InputDevice.SOURCE_MOUSE) && mGestureAxis != AXIS_VERTICAL) return true;
                     scrolledWithFinger = true;
+                    distanceY = consumeVerticalPan(distanceY);
+                    if (reportRemotePull(e, distanceY)) return true;
+                    float rowHeight = mRenderer.mFontLineSpacing * mDisplayScale;
                     distanceY += mScrollRemainder;
-                    int deltaRows = (int) (distanceY / mRenderer.mFontLineSpacing);
-                    mScrollRemainder = distanceY - deltaRows * mRenderer.mFontLineSpacing;
+                    int deltaRows = (int) (distanceY / rowHeight);
+                    mScrollRemainder = distanceY - deltaRows * rowHeight;
                     doScroll(e, deltaRows);
                 }
                 return true;
@@ -193,6 +216,10 @@ public final class TerminalView extends View {
             @Override
             public boolean onScale(float focusX, float focusY, float scale) {
                 if (mEmulator == null || isSelectingText()) return true;
+                if (canZoom()) {
+                    zoomBy(scale, focusX, focusY);
+                    return true;
+                }
                 mScaleFactor *= scale;
                 mScaleFactor = mClient.onScale(mScaleFactor);
                 return true;
@@ -203,6 +230,9 @@ public final class TerminalView extends View {
                 if (mEmulator == null) return true;
                 // Do not start scrolling until last fling has been taken care of:
                 if (!mScroller.isFinished()) return true;
+                // Herdr App: no fling for horizontal drags, and none into the remote pull (it opens history once).
+                if (!e2.isFromSource(InputDevice.SOURCE_MOUSE) && mGestureAxis != AXIS_VERTICAL) return true;
+                if (mRemoteScrollListener != null && !mEmulator.isMouseTrackingActive()) return true;
 
                 final boolean mouseTrackingAtStartOfFling = mEmulator.isMouseTrackingActive();
                 float SCALE = 0.25f;
@@ -247,6 +277,12 @@ public final class TerminalView extends View {
 
             @Override
             public boolean onDoubleTap(MotionEvent event) {
+                // Herdr App: double tap toggles between fit-to-width and the full font size.
+                if (canZoom()) {
+                    float target = mZoom > 1.01f ? 1f : 1f / mFitScale;
+                    zoomBy(target / mZoom, event.getX(), event.getY());
+                    return true;
+                }
                 // Do not treat is as a single confirmed tap - it may be followed by zoom.
                 return false;
             }
@@ -262,6 +298,7 @@ public final class TerminalView extends View {
             }
         });
         mScroller = new Scroller(context);
+        mAxisLockSlop = Math.max(1, ViewConfiguration.get(context).getScaledTouchSlop() / 2);
         AccessibilityManager am = (AccessibilityManager) context.getSystemService(Context.ACCESSIBILITY_SERVICE);
         mAccessibilityEnabled = am.isEnabled();
     }
@@ -278,7 +315,11 @@ public final class TerminalView extends View {
 
     /** Herdr App: receives scroll gestures so they can be forwarded to the remote pane. */
     public interface RemoteScrollListener {
-        /** @param rowsDown negative to scroll up (back in history), positive to scroll down. */
+        /**
+         * @param rowsDown negative to scroll up (back in history), positive to scroll down. Touch
+         * drags report once per gesture (±1) after moving past the remote scroll threshold; mouse
+         * wheels report every step.
+         */
         void onRemoteScroll(int rowsDown);
     }
 
@@ -287,6 +328,157 @@ public final class TerminalView extends View {
     /** Herdr App: when set, scroll gestures are forwarded here instead of scrolling the local transcript. */
     public void setRemoteScrollListener(RemoteScrollListener listener) {
         mRemoteScrollListener = listener;
+    }
+
+    /** Herdr App: how far (px) a touch drag must travel before it is reported to the RemoteScrollListener. */
+    public void setRemoteScrollThreshold(int px) {
+        mRemoteScrollThresholdPx = Math.max(0, px);
+    }
+
+    /**
+     * Herdr App: when enabled, an emulator grid wider than the view is scaled down to fit the width
+     * (remote frames keep the remote's size). Pinch or double tap zooms in, a drag pans the zoomed
+     * content, and a grid taller than the view stays anchored to its bottom until panned.
+     */
+    public void setFitToWidth(boolean enabled) {
+        if (mFitToWidth == enabled) return;
+        mFitToWidth = enabled;
+        mZoom = 1f;
+        mPanX = 0f;
+        mStickToBottom = true;
+        invalidate();
+    }
+
+    private float contentWidth() {
+        return mEmulator == null ? 0f : mEmulator.mColumns * mRenderer.mFontWidth;
+    }
+
+    private float contentHeight() {
+        return mEmulator == null ? 0f : mRenderer.mFontLineSpacingAndAscent + mEmulator.mRows * mRenderer.mFontLineSpacing;
+    }
+
+    private float maxPanX() {
+        return Math.max(0f, contentWidth() * mDisplayScale - getWidth());
+    }
+
+    private float maxPanY() {
+        return Math.max(0f, contentHeight() * mDisplayScale - getHeight());
+    }
+
+    private static float clamp(float v, float min, float max) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    /** Recomputes scale and clamps pan for the current grid and view size. */
+    private void updateDisplayTransform() {
+        float width = contentWidth();
+        if (!mFitToWidth || width <= 0f || getWidth() == 0 || getHeight() == 0) {
+            mFitScale = 1f;
+            mZoom = 1f;
+            mDisplayScale = 1f;
+            mPanX = 0f;
+            mPanY = 0f;
+            return;
+        }
+        mFitScale = Math.min(1f, getWidth() / width);
+        mZoom = clamp(mZoom, 1f, 1f / mFitScale);
+        mDisplayScale = mFitScale * mZoom;
+        mPanX = clamp(mPanX, 0f, maxPanX());
+        float maxY = maxPanY();
+        mPanY = mStickToBottom ? maxY : clamp(mPanY, 0f, maxY);
+    }
+
+    private boolean canZoom() {
+        updateDisplayTransform();
+        return mFitToWidth && mFitScale < 0.99f;
+    }
+
+    private void zoomBy(float factor, float focusX, float focusY) {
+        float contentX = (focusX + mPanX) / mDisplayScale;
+        float contentY = (focusY + mPanY) / mDisplayScale;
+        mZoom = clamp(mZoom * factor, 1f, 1f / mFitScale);
+        mDisplayScale = mFitScale * mZoom;
+        mPanX = contentX * mDisplayScale - focusX;
+        mPanY = contentY * mDisplayScale - focusY;
+        mStickToBottom = false;
+        updateDisplayTransform();
+        mStickToBottom = mPanY >= maxPanY() - 0.5f;
+        invalidate();
+    }
+
+    private boolean canPanHorizontally(float fingerDx) {
+        updateDisplayTransform();
+        return fingerDx < 0 ? mPanX < maxPanX() - 0.5f : mPanX > 0.5f;
+    }
+
+    /** Applies a vertical drag to the pan first; returns the part that is left for scrolling. */
+    private float consumeVerticalPan(float distanceY) {
+        updateDisplayTransform();
+        float max = maxPanY();
+        if (max <= 0f) return distanceY;
+        float next = clamp(mPanY + distanceY, 0f, max);
+        float used = next - mPanY;
+        if (used != 0f) {
+            mPanY = next;
+            mStickToBottom = next >= max - 0.5f;
+            invalidate();
+        }
+        return distanceY - used;
+    }
+
+    /** With a RemoteScrollListener, a touch drag is reported once, after the pull threshold. */
+    private boolean reportRemotePull(MotionEvent e, float distanceY) {
+        if (mRemoteScrollListener == null || mEmulator.isMouseTrackingActive()) return false;
+        if (e.isFromSource(InputDevice.SOURCE_MOUSE)) return false;
+        mGesturePullPx += distanceY;
+        if (!mPullReported && mGesturePullPx != 0f && Math.abs(mGesturePullPx) >= mRemoteScrollThresholdPx) {
+            mPullReported = true;
+            mRemoteScrollListener.onRemoteScroll(mGesturePullPx < 0 ? -1 : 1);
+        }
+        return true;
+    }
+
+    private void claimGesture() {
+        ViewParent parent = getParent();
+        if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
+    }
+
+    private void trackGestureAxis(MotionEvent event) {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                mGestureAxis = AXIS_NONE;
+                mGestureDownX = mGestureLastX = event.getX();
+                mGestureDownY = event.getY();
+                mGesturePullPx = 0f;
+                mPullReported = false;
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                mGestureAxis = AXIS_MULTI;
+                claimGesture();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (mGestureAxis == AXIS_NONE) {
+                    float dx = event.getX() - mGestureDownX;
+                    float dy = event.getY() - mGestureDownY;
+                    if (Math.hypot(dx, dy) > mAxisLockSlop) {
+                        if (Math.abs(dy) > Math.abs(dx)) {
+                            mGestureAxis = AXIS_VERTICAL;
+                            claimGesture();
+                        } else if (canPanHorizontally(dx)) {
+                            mGestureAxis = AXIS_PAN_HORIZONTAL;
+                            claimGesture();
+                        } else {
+                            mGestureAxis = AXIS_HORIZONTAL;
+                        }
+                    }
+                }
+                if (mGestureAxis == AXIS_PAN_HORIZONTAL) {
+                    mPanX = clamp(mPanX + mGestureLastX - event.getX(), 0f, maxPanX());
+                    invalidate();
+                }
+                mGestureLastX = event.getX();
+                break;
+        }
     }
 
     private Runnable mScrollPastBottomListener;
@@ -571,8 +763,10 @@ public final class TerminalView extends View {
      * @return Array with the column and row.
      */
     public int[] getColumnAndRow(MotionEvent event, boolean relativeToScroll) {
-        int column = (int) (event.getX() / mRenderer.mFontWidth);
-        int row = (int) ((event.getY() - mRenderer.mFontLineSpacingAndAscent) / mRenderer.mFontLineSpacing);
+        float x = (event.getX() + mPanX) / mDisplayScale;
+        float y = (event.getY() + mPanY) / mDisplayScale;
+        int column = (int) (x / mRenderer.mFontWidth);
+        int row = (int) ((y - mRenderer.mFontLineSpacingAndAscent) / mRenderer.mFontLineSpacing);
         if (relativeToScroll) {
             row += mTopRow;
         }
@@ -645,6 +839,7 @@ public final class TerminalView extends View {
 
         if (isSelectingText()) {
             updateFloatingToolbarVisibility(event);
+            trackGestureAxis(event);
             mGestureRecognizer.onTouchEvent(event);
             return true;
         } else if (event.isFromSource(InputDevice.SOURCE_MOUSE)) {
@@ -674,6 +869,7 @@ public final class TerminalView extends View {
             }
         }
 
+        if (!event.isFromSource(InputDevice.SOURCE_MOUSE)) trackGestureAxis(event);
         mGestureRecognizer.onTouchEvent(event);
         return true;
     }
@@ -1064,7 +1260,15 @@ public final class TerminalView extends View {
                 mTextSelectionCursorController.getSelectors(sel);
             }
 
+            updateDisplayTransform();
+            boolean transformed = mDisplayScale != 1f || mPanX != 0f || mPanY != 0f;
+            if (transformed) {
+                canvas.save();
+                canvas.translate(-mPanX, -mPanY);
+                canvas.scale(mDisplayScale, mDisplayScale);
+            }
             mRenderer.render(mEmulator, canvas, mTopRow, sel[0], sel[1], sel[2], sel[3]);
+            if (transformed) canvas.restore();
 
             // render the text selection handles
             renderTextSelection();
@@ -1080,22 +1284,22 @@ public final class TerminalView extends View {
     }
 
     public int getCursorX(float x) {
-        return (int) (x / mRenderer.mFontWidth);
+        return (int) ((x + mPanX) / mDisplayScale / mRenderer.mFontWidth);
     }
 
     public int getCursorY(float y) {
-        return (int) (((y - 40) / mRenderer.mFontLineSpacing) + mTopRow);
+        return (int) ((((y + mPanY) / mDisplayScale - 40) / mRenderer.mFontLineSpacing) + mTopRow);
     }
 
     public int getPointX(int cx) {
         if (cx > mEmulator.mColumns) {
             cx = mEmulator.mColumns;
         }
-        return Math.round(cx * mRenderer.mFontWidth);
+        return Math.round(cx * mRenderer.mFontWidth * mDisplayScale - mPanX);
     }
 
     public int getPointY(int cy) {
-        return Math.round((cy - mTopRow) * mRenderer.mFontLineSpacing);
+        return Math.round((cy - mTopRow) * mRenderer.mFontLineSpacing * mDisplayScale - mPanY);
     }
 
     public int getTopRow() {
