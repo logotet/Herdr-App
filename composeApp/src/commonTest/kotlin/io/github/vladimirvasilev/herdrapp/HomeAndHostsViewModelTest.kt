@@ -5,7 +5,12 @@ import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.Workspace
+import io.github.vladimirvasilev.herdrapp.domain.CommandResult
+import io.github.vladimirvasilev.herdrapp.ui.home.HomeDialog
 import io.github.vladimirvasilev.herdrapp.ui.home.HomeViewModel
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlin.test.assertNull
 import io.github.vladimirvasilev.herdrapp.ui.hosts.HostForm
 import io.github.vladimirvasilev.herdrapp.ui.hosts.HostFormError
 import io.github.vladimirvasilev.herdrapp.ui.hosts.HostsViewModel
@@ -70,6 +75,81 @@ class HomeAndHostsViewModelTest {
         assertEquals("Desk", state.hostName)
         assertEquals(listOf(blocked), state.needsYou)
         assertEquals(listOf(blocked), state.groups.single().panes)
+    }
+
+    private fun TestScope.home(): HomeViewModel {
+        val viewModel = HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)))
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        return viewModel
+    }
+
+    private fun TestScope.confirm(viewModel: HomeViewModel, dialog: HomeDialog, name: String = "") {
+        viewModel.showDialog(dialog)
+        runCurrent()
+        assertEquals(dialog, viewModel.uiState.value.dialog)
+        viewModel.confirmDialog(name)
+        runCurrent()
+    }
+
+    @Test
+    fun confirmingADialogChangesTheLayoutAndClosesIt() = runTest(dispatcher) {
+        val viewModel = home()
+
+        confirm(viewModel, HomeDialog.RenamePane("w1:p1", "old"), " tests ")
+        confirm(viewModel, HomeDialog.ClosePane("w1:p1", "tests"))
+        confirm(viewModel, HomeDialog.NewTab("w1"), "scratch")
+        confirm(viewModel, HomeDialog.NewTab("w1"), "  ")
+        confirm(viewModel, HomeDialog.RenameTab("w1:t1", "old"), "git")
+        confirm(viewModel, HomeDialog.CloseTab("w1:t1", "git"))
+
+        assertEquals(
+            listOf(
+                "renamePane w1:p1 tests",
+                "closePane w1:p1",
+                "createTab w1 scratch",
+                "createTab w1 null",
+                "renameTab w1:t1 git",
+                "closeTab w1:t1",
+            ),
+            session.changes,
+        )
+        assertNull(viewModel.uiState.value.dialog)
+    }
+
+    @Test
+    fun aRenameWithoutANameIsNotSent() = runTest(dispatcher) {
+        val viewModel = home()
+        val dialog = HomeDialog.RenamePane("w1:p1", "old")
+
+        confirm(viewModel, dialog, "   ")
+
+        assertTrue(session.changes.isEmpty())
+        assertEquals(dialog, viewModel.uiState.value.dialog)
+    }
+
+    @Test
+    fun dismissingADialogChangesNothing() = runTest(dispatcher) {
+        val viewModel = home()
+        viewModel.showDialog(HomeDialog.ClosePane("w1:p1", "tests"))
+
+        viewModel.dismissDialog()
+        runCurrent()
+
+        assertTrue(session.changes.isEmpty())
+        assertNull(viewModel.uiState.value.dialog)
+    }
+
+    @Test
+    fun aRefusedChangeIsShownForAMoment() = runTest(dispatcher) {
+        val viewModel = home()
+        session.changeResult = CommandResult.Failure("pane not found")
+
+        confirm(viewModel, HomeDialog.ClosePane("w1:p1", "tests"))
+        assertEquals("pane not found", viewModel.uiState.value.changeFailed)
+
+        advanceTimeBy(4_001)
+        runCurrent()
+        assertNull(viewModel.uiState.value.changeFailed)
     }
 
     @Test

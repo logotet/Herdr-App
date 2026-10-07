@@ -1,7 +1,10 @@
 package io.github.vladimirvasilev.herdrapp.ui.home
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,12 +13,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,26 +49,66 @@ internal fun LazyListScope.workspaceSection(
     collapsed: Boolean,
     onToggle: () -> Unit,
     onOpen: (paneId: String) -> Unit,
+    onDialog: (HomeDialog) -> Unit,
 ) {
     val workspaceId = group.workspace.id
-    item(key = "ws-$workspaceId") { WorkspaceHeader(group, collapsed, onToggle) }
+    item(key = "ws-$workspaceId") {
+        WorkspaceHeader(group, collapsed, onToggle, onNewTab = { onDialog(HomeDialog.NewTab(workspaceId)) })
+    }
     if (collapsed) return
     group.tabs.forEach { tabGroup ->
         val tab = tabGroup.tab
         if (tab != null && group.tabs.size > 1) {
-            item(key = "tab-${tab.id}") { TabHeader(tab) }
+            item(key = "tab-${tab.id}") { TabHeader(tab, onDialog) }
         }
-        items(tabGroup.panes, key = { it.paneId }) { pane ->
-            if (pane.agent != null) AgentRow(pane, onOpen) else PaneRow(pane, onOpen)
+        items(tabGroup.panes, key = { it.paneId }) { pane -> PaneEntry(pane, onOpen, onDialog) }
+    }
+}
+
+/** A pane of the list with its long-press menu: an agent as a card, anything else as a row. */
+@Composable
+internal fun PaneEntry(pane: Pane, onOpen: (String) -> Unit, onDialog: (HomeDialog) -> Unit) {
+    LongPressMenu(
+        onRename = { onDialog(HomeDialog.RenamePane(pane.paneId, pane.title)) },
+        onClose = { onDialog(HomeDialog.ClosePane(pane.paneId, pane.title)) },
+    ) { onLongPress ->
+        if (pane.agent != null) AgentRow(pane, onOpen, onLongPress) else PaneRow(pane, onOpen, onLongPress)
+    }
+}
+
+@Composable
+private fun LongPressMenu(
+    onRename: () -> Unit,
+    onClose: () -> Unit,
+    content: @Composable (onLongPress: () -> Unit) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        content { open = true }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.home_rename)) },
+                onClick = {
+                    open = false
+                    onRename()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.home_close), color = MaterialTheme.colorScheme.error) },
+                onClick = {
+                    open = false
+                    onClose()
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun WorkspaceHeader(group: WorkspaceGroup, collapsed: Boolean, onToggle: () -> Unit) {
+private fun WorkspaceHeader(group: WorkspaceGroup, collapsed: Boolean, onToggle: () -> Unit, onNewTab: () -> Unit) {
     val workspace = group.workspace
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(top = 10.dp, bottom = 4.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(top = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         group.status?.let { status ->
@@ -72,6 +123,13 @@ private fun WorkspaceHeader(group: WorkspaceGroup, collapsed: Boolean, onToggle:
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        IconButton(onClick = onNewTab) {
+            Icon(
+                painterResource(Res.drawable.ic_add),
+                contentDescription = stringResource(Res.string.home_new_tab),
+                tint = HerdrTheme.colors.muted,
+            )
+        }
         Icon(
             painterResource(Res.drawable.ic_chevron_left),
             contentDescription = stringResource(
@@ -83,19 +141,30 @@ private fun WorkspaceHeader(group: WorkspaceGroup, collapsed: Boolean, onToggle:
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TabHeader(tab: Tab) {
-    Text(
-        tab.label.ifBlank { stringResource(Res.string.home_tab_number, tab.number) },
-        style = MaterialTheme.typography.labelMedium,
-        color = HerdrTheme.colors.muted,
-        modifier = Modifier.padding(start = 4.dp),
-    )
+private fun TabHeader(tab: Tab, onDialog: (HomeDialog) -> Unit) {
+    val name = tab.label.ifBlank { stringResource(Res.string.home_tab_number, tab.number) }
+    LongPressMenu(
+        onRename = { onDialog(HomeDialog.RenameTab(tab.id, tab.label)) },
+        onClose = { onDialog(HomeDialog.CloseTab(tab.id, name)) },
+    ) { onLongPress ->
+        Text(
+            name,
+            style = MaterialTheme.typography.labelMedium,
+            color = HerdrTheme.colors.muted,
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(onClick = {}, onLongClick = onLongPress)
+                .padding(start = 4.dp, top = 4.dp, bottom = 4.dp),
+        )
+    }
 }
 
 /** A pane that runs no agent: a shell, an editor, a file manager. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PaneRow(pane: Pane, onOpen: (String) -> Unit) {
+private fun PaneRow(pane: Pane, onOpen: (String) -> Unit, onLongPress: () -> Unit) {
     Text(
         pane.title,
         color = HerdrTheme.colors.terminalText,
@@ -103,8 +172,9 @@ private fun PaneRow(pane: Pane, onOpen: (String) -> Unit) {
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .fillMaxWidth()
-            .background(HerdrTheme.colors.panelInset, RoundedCornerShape(10.dp))
-            .clickable { onOpen(pane.paneId) }
+            .clip(RoundedCornerShape(10.dp))
+            .background(HerdrTheme.colors.panelInset)
+            .combinedClickable(onClick = { onOpen(pane.paneId) }, onLongClick = onLongPress)
             .padding(horizontal = 12.dp, vertical = 12.dp),
     )
 }

@@ -10,6 +10,10 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'; .\gradlew.bat asse
 
 The Android app id is `io.github.vladimirvasilev.herdrapp`; minSdk is 34.
 
+## Changing the layout
+
+On the workspace list, long-press a pane or a tab name to rename or close it, and tap **+** on a workspace to add a tab with a shell. These are herdr `pane.rename`, `pane.close`, `tab.create`, `tab.rename` and `tab.close`. Closing stops the program in the pane on the PC and cannot be undone, so the app asks first.
+
 ## Using a pane
 
 - **Prompt box** (always under the pane): uses the normal phone keyboard (autocorrect, swipe, voice, paste). Enter or the ➤ button sends the text plus Enter to the pane through herdr `pane.send_input`. This works without taking control, so the PC pane is never resized. To add a new line, long-press ➤ or use Shift+Enter on a hardware keyboard. Pasted multi-line text arrives as one prompt in Claude Code and Copilot CLI. Sending an empty box just presses Enter. Each pane keeps its own draft while you swipe between agents.

@@ -1,6 +1,8 @@
 package io.github.vladimirvasilev.herdrapp.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +39,16 @@ import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner
 internal fun HomeRoute(container: AppContainer, onOpen: (paneId: String) -> Unit, onHosts: () -> Unit) {
     val viewModel = viewModel { HomeViewModel(container.session, container.hosts) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onOpen = onOpen, onHosts = onHosts, onRefresh = viewModel::refresh)
+    HomeScreen(
+        state = state,
+        onOpen = onOpen,
+        onHosts = onHosts,
+        onRefresh = viewModel::refresh,
+        onDialog = viewModel::showDialog,
+    )
+    state.dialog?.let { dialog ->
+        LayoutDialog(dialog, onConfirm = viewModel::confirmDialog, onDismiss = viewModel::dismissDialog)
+    }
 }
 
 @Composable
@@ -46,6 +57,7 @@ internal fun HomeScreen(
     onOpen: (paneId: String) -> Unit,
     onHosts: () -> Unit,
     onRefresh: () -> Unit,
+    onDialog: (HomeDialog) -> Unit,
 ) {
     val currentOnRefresh by rememberUpdatedState(onRefresh)
     // Ids of the workspaces the user folded away.
@@ -53,6 +65,13 @@ internal fun HomeScreen(
     Column(Modifier.fillMaxSize()) {
         ConnectionBanner(state.connection, state.hostName, onHosts)
         HerdrUnavailableBanner(state.herdrAvailable)
+        state.changeFailed?.let { reason ->
+            Text(
+                stringResource(Res.string.home_change_failed, reason),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().background(HerdrTheme.colors.bannerError).padding(12.dp),
+            )
+        }
         if (!state.hasHosts) {
             EmptyHosts(onHosts)
             return@Column
@@ -76,7 +95,7 @@ internal fun HomeScreen(
             item { HeaderRow(stringResource(Res.string.home_title), stringResource(Res.string.home_refresh_hint)) }
             if (state.needsYou.isNotEmpty()) {
                 item { SectionTitle(stringResource(Res.string.home_needs_you)) }
-                items(state.needsYou, key = { "needs-${it.paneId}" }) { AgentRow(it, onOpen) }
+                items(state.needsYou, key = { "needs-${it.paneId}" }) { PaneEntry(it, onOpen, onDialog) }
             }
             state.groups.forEach { group ->
                 val id = group.workspace.id
@@ -85,6 +104,7 @@ internal fun HomeScreen(
                     collapsed = id in collapsed,
                     onToggle = { collapsed = if (id in collapsed) collapsed - id else collapsed + id },
                     onOpen = onOpen,
+                    onDialog = onDialog,
                 )
             }
         }

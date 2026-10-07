@@ -1,6 +1,7 @@
 package io.github.vladimirvasilev.herdrapp.ui.home
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import org.jetbrains.compose.resources.stringResource
 import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,11 +28,15 @@ import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.ui.components.StatusBadge
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun AgentRow(pane: Pane, onOpen: (String) -> Unit) {
+internal fun AgentRow(pane: Pane, onOpen: (String) -> Unit, onLongPress: () -> Unit) {
     val agent = pane.agent
     Card(
-        Modifier.fillMaxWidth().clickable { onOpen(pane.paneId) },
+        Modifier
+            .fillMaxWidth()
+            .clip(CardDefaults.shape)
+            .combinedClickable(onClick = { onOpen(pane.paneId) }, onLongClick = onLongPress),
         colors = CardDefaults.cardColors(containerColor = HerdrTheme.colors.panel),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
