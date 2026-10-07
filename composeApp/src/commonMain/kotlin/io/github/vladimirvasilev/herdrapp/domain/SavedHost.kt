@@ -1,18 +1,17 @@
 package io.github.vladimirvasilev.herdrapp.domain
 
-import kotlinx.serialization.Serializable
+import kotlinx.coroutines.flow.StateFlow
 
-@Serializable
 data class SavedHost(
     val id: String,
     val name: String,
     val host: String,
     val port: Int = 8787,
-    val token: String
+    val token: String,
 )
 
 interface HostRepository {
-    val hosts: kotlinx.coroutines.flow.StateFlow<List<SavedHost>>
+    val hosts: StateFlow<List<SavedHost>>
     suspend fun upsert(host: SavedHost)
     suspend fun delete(id: String)
 }
