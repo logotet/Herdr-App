@@ -43,6 +43,9 @@ data class HerdrColors(
     val onNotice: Color = Color.White,
     /** Content drawn on a primary-colored control. */
     val onAction: Color = Color.Black,
+    /** The control button: green takes control of the pane, red gives it back. */
+    val controlTake: Color = Color(0xFFA6E3A1),
+    val controlRelease: Color = Color(0xFFF38BA8),
 )
 
 private val LocalHerdrColors = staticCompositionLocalOf { HerdrColors() }

@@ -8,23 +8,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.vladimirvasilev.herdrapp.domain.Agent
@@ -32,13 +32,15 @@ import io.github.vladimirvasilev.herdrapp.ui.components.StatusDot
 
 @Composable
 internal fun TerminalTopBar(agent: Agent, onBack: () -> Unit) {
-    val backLabel = stringResource(Res.string.terminal_back)
     Row(
         Modifier.fillMaxWidth().background(HerdrTheme.colors.panel).padding(end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = backLabel }) {
-            Text("←", style = MaterialTheme.typography.titleLarge)
+        IconButton(onClick = onBack) {
+            Icon(
+                painterResource(Res.drawable.ic_chevron_left),
+                contentDescription = stringResource(Res.string.terminal_back),
+            )
         }
         StatusDot(agent.status)
         Spacer(Modifier.width(10.dp))
@@ -53,30 +55,22 @@ internal fun TerminalTopBar(agent: Agent, onBack: () -> Unit) {
     }
 }
 
-/**
- * Takes or releases control of the pane. Small while controlling, so it covers less of the last
- * rows, and in the warning colour as a reminder that the PC pane is held.
- */
+/** Takes control of the pane (green, keyboard) or gives it back (red, stop). */
 @Composable
 internal fun BoxScope.ControlFab(controlling: Boolean, onTakeControl: () -> Unit, onRelease: () -> Unit) {
-    val modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
-    if (controlling) {
-        SmallFloatingActionButton(
-            onClick = onRelease,
-            modifier = modifier,
-            containerColor = HerdrTheme.colors.bannerWarning,
-            contentColor = HerdrTheme.colors.onBannerWarning,
-        ) {
-            Text(
-                stringResource(Res.string.terminal_release),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(horizontal = 12.dp),
-            )
-        }
-    } else {
-        ExtendedFloatingActionButton(onClick = onTakeControl, modifier = modifier) {
-            Text(stringResource(Res.string.terminal_take_control))
-        }
+    FloatingActionButton(
+        onClick = if (controlling) onRelease else onTakeControl,
+        modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+        shape = CircleShape,
+        containerColor = if (controlling) HerdrTheme.colors.controlRelease else HerdrTheme.colors.controlTake,
+        contentColor = HerdrTheme.colors.onAction,
+    ) {
+        Icon(
+            painterResource(if (controlling) Res.drawable.ic_stop else Res.drawable.ic_keyboard),
+            contentDescription = stringResource(
+                if (controlling) Res.string.terminal_release else Res.string.terminal_take_control,
+            ),
+        )
     }
 }
 
