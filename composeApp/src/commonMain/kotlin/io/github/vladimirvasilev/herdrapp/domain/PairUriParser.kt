@@ -1,6 +1,4 @@
-package io.github.vladimirvasilev.herdrapp.data
-
-import io.github.vladimirvasilev.herdrapp.domain.SavedHost
+package io.github.vladimirvasilev.herdrapp.domain
 
 import kotlin.random.Random
 
