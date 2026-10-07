@@ -19,8 +19,10 @@ data class HostForm(
     val host: String = "",
     val port: String = DEFAULT_PORT.toString(),
     val token: String = "",
-    val error: String? = null,
+    val error: HostFormError? = null,
 )
+
+enum class HostFormError { MISSING_FIELDS, INVALID_QR }
 
 data class HostsUiState(
     val hosts: List<SavedHost> = emptyList(),
@@ -56,7 +58,7 @@ class HostsViewModel(
     fun saveForm(): Boolean {
         val current = form.value
         if (current.host.isBlank() || current.token.isBlank()) {
-            form.update { it.copy(error = "Host and token are required") }
+            form.update { it.copy(error = HostFormError.MISSING_FIELDS) }
             return false
         }
         val port = current.port.toIntOrNull() ?: DEFAULT_PORT
@@ -77,7 +79,7 @@ class HostsViewModel(
         if (raw == null) return false
         val host = PairUriParser.parse(raw)
         if (host == null) {
-            form.update { it.copy(error = "Invalid QR") }
+            form.update { it.copy(error = HostFormError.INVALID_QR) }
             return false
         }
         save(host)

@@ -10,12 +10,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 internal sealed interface KeySpec {
@@ -23,6 +23,7 @@ internal sealed interface KeySpec {
     data class HerdrKey(val key: String) : KeySpec
 }
 
+// Key cap labels, not prose: they name keys and are not translated.
 private val EXTRA_KEYS = listOf(
     "Esc", "Tab", "Ctrl", "Alt", "Up", "Down", "Left", "Right", "Enter", "Ctrl+C", "PgUp", "PgDn",
     "Home", "End", "/", "|", "-", "1", "2", "y", "n", "Shift+Tab",
@@ -34,7 +35,7 @@ internal fun ExtraKeysBar(onKey: (KeySpec) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Color(0xFF11111B))
+            .background(HerdrTheme.colors.panelInset)
             .horizontalScroll(rememberScrollState())
             .padding(6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),

@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
+import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -17,6 +19,13 @@ import io.github.vladimirvasilev.herdrapp.domain.Agent
 import io.github.vladimirvasilev.herdrapp.domain.TerminalFrame
 import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner
 import kotlinx.coroutines.flow.Flow
+
+@Composable
+private fun PaneNotice.text(): String = when (this) {
+    PaneNotice.NoScrollback -> stringResource(Res.string.terminal_notice_no_scrollback)
+    is PaneNotice.SendFailed -> stringResource(Res.string.terminal_notice_send_failed, reason)
+    is PaneNotice.HistoryFailed -> stringResource(Res.string.terminal_notice_history_failed, reason)
+}
 
 /** What one pane's screen can ask for. */
 internal class PaneActions(
@@ -69,7 +78,7 @@ internal fun TerminalScreen(
             )
             if (pane.history != null) HistoryOverlay(onLive = actions.onExitHistory)
             if (pane.historyLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
-            pane.notice?.let { Notice(it) }
+            pane.notice?.let { Notice(it.text()) }
         }
         PromptBar(
             value = pane.draft,

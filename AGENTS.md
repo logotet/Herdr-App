@@ -41,8 +41,10 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'; .\gradlew.bat asse
   `rememberSaveable`. Navigation state is never a plain `remember`.
 - One statement per line. No composable written as a single long line. Files stay under about
   200 lines; split by component when they grow.
-- Colors come from the theme. User-visible strings come from resources. No inline hex colors
-  or string literals in composables.
+- Colors come from `MaterialTheme` or `HerdrTheme.colors`, and user-visible text from Compose
+  resources (`composeResources/values/strings.xml`). No inline hex colors or prose literals in
+  composables. ViewModels expose what happened as a type; the composable picks the text.
+  Key cap labels and glyphs are not prose.
 
 ## Coroutines and connection
 

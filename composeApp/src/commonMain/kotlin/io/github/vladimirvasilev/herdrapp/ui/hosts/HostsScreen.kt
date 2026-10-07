@@ -17,10 +17,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.StringResource
+import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,22 +70,31 @@ internal fun HostsScreen(
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Hosts", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-                TextButton(onClick = onBack) { Text("Done") }
+                Text(
+                    stringResource(Res.string.hosts_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onBack) { Text(stringResource(Res.string.hosts_done)) }
             }
         }
         items(state.hosts, key = { it.id }) { saved ->
             SavedHostRow(saved, onSelect = { onSelect(saved) }, onDelete = { onDelete(saved) })
         }
         item { Divider() }
-        item { Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) { Text("Scan pairing QR") } }
-        item { FormField(form.name, onNameChange, "Name") }
-        item { FormField(form.host, onHostChange, "Host") }
-        item { FormField(form.port, onPortChange, "Port") }
-        item { FormField(form.token, onTokenChange, "Token") }
-        item { form.error?.let { Text(it, color = MaterialTheme.colorScheme.error) } }
-        item { Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) { Text("Save host") } }
+        item { Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.hosts_scan)) } }
+        item { FormField(form.name, onNameChange, stringResource(Res.string.hosts_field_name)) }
+        item { FormField(form.host, onHostChange, stringResource(Res.string.hosts_field_host)) }
+        item { FormField(form.port, onPortChange, stringResource(Res.string.hosts_field_port)) }
+        item { FormField(form.token, onTokenChange, stringResource(Res.string.hosts_field_token)) }
+        item { form.error?.let { Text(stringResource(it.message()), color = MaterialTheme.colorScheme.error) } }
+        item { Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.hosts_save)) } }
     }
+}
+
+private fun HostFormError.message(): StringResource = when (this) {
+    HostFormError.MISSING_FIELDS -> Res.string.hosts_error_missing_fields
+    HostFormError.INVALID_QR -> Res.string.hosts_error_invalid_qr
 }
 
 @Composable
@@ -96,9 +108,9 @@ private fun SavedHostRow(saved: SavedHost, onSelect: () -> Unit, onDelete: () ->
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(saved.name, fontWeight = FontWeight.Bold)
-                Text("${saved.host}:${saved.port}", color = Color.Gray)
+                Text("${saved.host}:${saved.port}", color = HerdrTheme.colors.muted)
             }
-            TextButton(onClick = onDelete) { Text("Delete") }
+            TextButton(onClick = onDelete) { Text(stringResource(Res.string.hosts_delete)) }
         }
     }
 }

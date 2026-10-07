@@ -26,13 +26,20 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
+/** A short message shown over a pane for a moment. */
+sealed interface PaneNotice {
+    data object NoScrollback : PaneNotice
+    data class SendFailed(val reason: String) : PaneNotice
+    data class HistoryFailed(val reason: String) : PaneNotice
+}
+
 data class PaneUiState(
     val controlling: Boolean = false,
     val draft: TextFieldValue = TextFieldValue(""),
     /** Non-null while the local scrollback is shown instead of the live stream. */
     val history: String? = null,
     val historyLoading: Boolean = false,
-    val notice: String? = null,
+    val notice: PaneNotice? = null,
     val sending: Boolean = false,
 )
 
@@ -45,7 +52,6 @@ data class TerminalUiState(
     fun pane(paneId: String): PaneUiState = panes[paneId] ?: PaneUiState()
 }
 
-private const val NO_SCROLLBACK = "No scrollback here (full-screen app). Try PgUp/PgDn."
 private const val NOTICE_MILLIS = 2_500L
 private val NO_SCROLLBACK_COOLDOWN = 5.seconds
 private val DEFAULT_GRID = 80 to 24
@@ -115,7 +121,7 @@ internal class TerminalViewModel(
         viewModelScope.launch {
             when (val result = terminal.submitPrompt(paneId, normalizePrompt(pane.draft.text))) {
                 CommandResult.Success -> update(paneId) { it.copy(draft = TextFieldValue(""), history = null) }
-                is CommandResult.Failure -> notify(paneId, "Send failed: ${result.message}")
+                is CommandResult.Failure -> notify(paneId, PaneNotice.SendFailed(result.message))
             }
             update(paneId) { it.copy(sending = false) }
         }
@@ -136,7 +142,7 @@ internal class TerminalViewModel(
                         update(paneId) { it.copy(history = result.history.text) }
                     }
                 HistoryResult.Empty -> noScrollback(paneId)
-                is HistoryResult.Failed -> notify(paneId, "History: ${result.message}")
+                is HistoryResult.Failed -> notify(paneId, PaneNotice.HistoryFailed(result.message))
             }
             update(paneId) { it.copy(historyLoading = false) }
         }
@@ -185,12 +191,12 @@ internal class TerminalViewModel(
 
     private fun noScrollback(paneId: String) {
         noScrollbackAt[paneId] = timeSource.markNow()
-        notify(paneId, NO_SCROLLBACK)
+        notify(paneId, PaneNotice.NoScrollback)
     }
 
-    /** Shows [text] over the pane for a moment. */
-    private fun notify(paneId: String, text: String) {
-        update(paneId) { it.copy(notice = text) }
+    /** Shows [notice] over the pane for a moment. */
+    private fun notify(paneId: String, notice: PaneNotice) {
+        update(paneId) { it.copy(notice = notice) }
         noticeJobs.remove(paneId)?.cancel()
         noticeJobs[paneId] = viewModelScope.launch {
             delay(NOTICE_MILLIS)

@@ -16,13 +16,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,11 +37,15 @@ import io.github.vladimirvasilev.herdrapp.ui.components.StatusBadge
 internal fun AgentRow(agent: Agent, onOpen: (String) -> Unit) {
     Card(
         Modifier.fillMaxWidth().clickable { onOpen(agent.paneId) },
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF181825)),
+        colors = CardDefaults.cardColors(containerColor = HerdrTheme.colors.panel),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(agent.kind ?: "agent", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    agent.kind ?: stringResource(Res.string.home_agent_unknown_kind),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 Spacer(Modifier.width(8.dp))
                 Text(agent.title, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 StatusBadge(agent.status)
@@ -51,7 +57,7 @@ internal fun AgentRow(agent: Agent, onOpen: (String) -> Unit) {
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     fontFamily = FontFamily.Monospace,
-                    color = Color(0xFFCDD6F4),
+                    color = HerdrTheme.colors.terminalText,
                 )
             }
         }
@@ -64,17 +70,17 @@ internal fun OtherPanes(panes: List<Pane>) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(Color(0xFF11111B), RoundedCornerShape(10.dp))
+            .background(HerdrTheme.colors.panelInset, RoundedCornerShape(10.dp))
             .clickable { expanded = !expanded }
             .padding(10.dp)
     ) {
-        Text("Other panes (${panes.size})", color = Color.Gray)
+        Text(stringResource(Res.string.home_other_panes, panes.size), color = HerdrTheme.colors.muted)
         AnimatedVisibility(expanded) {
             Column {
                 panes.forEach { pane ->
                     Text(
-                        "? ${pane.title}",
-                        color = Color.Gray,
+                        stringResource(Res.string.home_other_pane, pane.title),
+                        color = HerdrTheme.colors.muted,
                         maxLines = 1,
                     )
                 }

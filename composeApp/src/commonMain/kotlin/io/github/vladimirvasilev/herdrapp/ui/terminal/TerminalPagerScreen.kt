@@ -7,6 +7,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -28,7 +30,7 @@ private fun TerminalPagerScreen(viewModel: TerminalViewModel, initialPaneId: Str
     val agents = state.agents
     if (agents.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            TextButton(onClick = onBack) { Text("No agents. Back") }
+            TextButton(onClick = onBack) { Text(stringResource(Res.string.terminal_no_agents)) }
         }
         return
     }

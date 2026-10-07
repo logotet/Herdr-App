@@ -17,9 +17,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isShiftPressed
@@ -52,7 +54,7 @@ internal fun PromptBar(
         onValueChange(TextFieldValue(text, TextRange(start + 1)))
     }
     Row(
-        Modifier.fillMaxWidth().background(Color(0xFF181825)).padding(horizontal = 6.dp, vertical = 4.dp),
+        Modifier.fillMaxWidth().background(HerdrTheme.colors.panel).padding(horizontal = 6.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OutlinedTextField(
@@ -65,7 +67,7 @@ internal fun PromptBar(
                 }
                 true
             },
-            placeholder = { Text("Message agent…") },
+            placeholder = { Text(stringResource(Res.string.terminal_prompt_placeholder)) },
             maxLines = 6,
             textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(
@@ -79,11 +81,11 @@ internal fun PromptBar(
         Box(
             Modifier
                 .size(48.dp)
-                .background(if (sending) Color.Gray else MaterialTheme.colorScheme.primary, CircleShape)
+                .background(if (sending) HerdrTheme.colors.muted else MaterialTheme.colorScheme.primary, CircleShape)
                 .combinedClickable(enabled = !sending, onClick = onSend, onLongClick = { insertNewline() }),
             contentAlignment = Alignment.Center,
         ) {
-            Text("➤", color = Color.Black, style = MaterialTheme.typography.titleMedium)
+            Text("➤", color = HerdrTheme.colors.onAction, style = MaterialTheme.typography.titleMedium)
         }
     }
 }

@@ -6,6 +6,7 @@ import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
 import io.github.vladimirvasilev.herdrapp.domain.PaneHistory
 import io.github.vladimirvasilev.herdrapp.domain.StreamMode
 import io.github.vladimirvasilev.herdrapp.ui.terminal.KeySpec
+import io.github.vladimirvasilev.herdrapp.ui.terminal.PaneNotice
 import io.github.vladimirvasilev.herdrapp.ui.terminal.PaneUiState
 import io.github.vladimirvasilev.herdrapp.ui.terminal.TerminalViewModel
 import kotlinx.coroutines.Dispatchers
@@ -92,7 +93,7 @@ class TerminalViewModelTest {
 
         viewModel.submit(PANE)
 
-        assertEquals(PaneUiState(draft = TextFieldValue("hello"), notice = "Send failed: pane is gone"), pane(viewModel))
+        assertEquals(PaneUiState(draft = TextFieldValue("hello"), notice = PaneNotice.SendFailed("pane is gone")), pane(viewModel))
         advanceTimeBy(2_501)
         assertNull(pane(viewModel).notice)
     }

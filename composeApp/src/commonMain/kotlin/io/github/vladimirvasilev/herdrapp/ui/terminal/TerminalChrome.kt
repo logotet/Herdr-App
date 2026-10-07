@@ -15,9 +15,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.vladimirvasilev.herdrapp.domain.Agent
@@ -32,20 +34,24 @@ internal fun TerminalTopBar(
     onTakeControl: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().background(Color(0xFF181825)).padding(horizontal = 8.dp, vertical = 6.dp),
+        Modifier.fillMaxWidth().background(HerdrTheme.colors.panel).padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TextButton(onClick = onBack) { Text("Back") }
+        TextButton(onClick = onBack) { Text(stringResource(Res.string.terminal_back)) }
         Column(Modifier.weight(1f)) {
             Text(agent.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(agent.kind ?: agent.paneId, color = Color.Gray, style = MaterialTheme.typography.labelSmall)
+            Text(
+                agent.kind ?: agent.paneId,
+                color = HerdrTheme.colors.muted,
+                style = MaterialTheme.typography.labelSmall,
+            )
         }
         StatusBadge(agent.status)
         Spacer(Modifier.width(8.dp))
         if (controlling) {
-            Button(onClick = onRelease) { Text("Release") }
+            Button(onClick = onRelease) { Text(stringResource(Res.string.terminal_release)) }
         } else {
-            Button(onClick = onTakeControl) { Text("Take control") }
+            Button(onClick = onTakeControl) { Text(stringResource(Res.string.terminal_take_control)) }
         }
     }
 }
@@ -53,15 +59,17 @@ internal fun TerminalTopBar(
 /** Shown over the pane while the local scrollback replaces the live stream. */
 @Composable
 internal fun BoxScope.HistoryOverlay(onLive: () -> Unit) {
-    Button(onClick = onLive, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)) { Text("↓ Live") }
+    Button(onClick = onLive, modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
+        Text(stringResource(Res.string.terminal_live))
+    }
     Text(
-        "History",
-        color = Color.Black,
+        stringResource(Res.string.terminal_history),
+        color = HerdrTheme.colors.onHistoryBadge,
         style = MaterialTheme.typography.labelSmall,
         modifier = Modifier
             .align(Alignment.TopEnd)
             .padding(8.dp)
-            .background(Color(0xFFF9E2AF), RoundedCornerShape(6.dp))
+            .background(HerdrTheme.colors.historyBadge, RoundedCornerShape(6.dp))
             .padding(horizontal = 8.dp, vertical = 2.dp),
     )
 }
@@ -70,12 +78,12 @@ internal fun BoxScope.HistoryOverlay(onLive: () -> Unit) {
 internal fun BoxScope.Notice(text: String) {
     Text(
         text,
-        color = Color.White,
+        color = HerdrTheme.colors.onNotice,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .padding(12.dp)
-            .background(Color(0xE6313244), RoundedCornerShape(8.dp))
+            .background(HerdrTheme.colors.notice, RoundedCornerShape(8.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
@@ -84,9 +92,9 @@ internal fun BoxScope.Notice(text: String) {
 internal fun TakeControlDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Take control?") },
-        text = { Text("Control mode sends raw keyboard input and resizes the real PC pane.") },
-        confirmButton = { Button(onClick = onConfirm) { Text("Take control") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = { Text(stringResource(Res.string.terminal_take_control_title)) },
+        text = { Text(stringResource(Res.string.terminal_take_control_body)) },
+        confirmButton = { Button(onClick = onConfirm) { Text(stringResource(Res.string.terminal_take_control)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.terminal_cancel)) } },
     )
 }

@@ -6,6 +6,7 @@ import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import io.github.vladimirvasilev.herdrapp.ui.home.HomeViewModel
 import io.github.vladimirvasilev.herdrapp.ui.hosts.HostForm
+import io.github.vladimirvasilev.herdrapp.ui.hosts.HostFormError
 import io.github.vladimirvasilev.herdrapp.ui.hosts.HostsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -76,7 +77,7 @@ class HomeAndHostsViewModelTest {
         assertFalse(viewModel.saveForm())
         runCurrent()
 
-        assertEquals("Host and token are required", viewModel.uiState.value.form.error)
+        assertEquals(HostFormError.MISSING_FIELDS, viewModel.uiState.value.form.error)
         assertTrue(hosts.hosts.value.isEmpty())
     }
 
@@ -108,7 +109,7 @@ class HomeAndHostsViewModelTest {
         assertFalse(viewModel.onScanned(null))
         assertFalse(viewModel.onScanned("https://example.com"))
         runCurrent()
-        assertEquals("Invalid QR", viewModel.uiState.value.form.error)
+        assertEquals(HostFormError.INVALID_QR, viewModel.uiState.value.form.error)
 
         assertTrue(viewModel.onScanned("herdr-bridge://pair?host=pc.local&token=abc&name=Desk"))
         runCurrent()

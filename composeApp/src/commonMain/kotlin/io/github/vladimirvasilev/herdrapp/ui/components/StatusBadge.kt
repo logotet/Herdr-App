@@ -14,6 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.StringResource
+import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -24,10 +28,10 @@ import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 @Composable
 internal fun StatusBadge(status: AgentStatus) {
     val color = when (status) {
-        AgentStatus.BLOCKED -> Color(0xFFF38BA8)
-        AgentStatus.WORKING -> Color(0xFF89B4FA)
-        AgentStatus.DONE -> Color(0xFFA6E3A1)
-        AgentStatus.IDLE -> Color(0xFF9399B2)
+        AgentStatus.BLOCKED -> HerdrTheme.colors.statusBlocked
+        AgentStatus.WORKING -> HerdrTheme.colors.statusWorking
+        AgentStatus.DONE -> HerdrTheme.colors.statusDone
+        AgentStatus.IDLE -> HerdrTheme.colors.statusIdle
         AgentStatus.UNKNOWN -> Color.Transparent
     }
     val transition = rememberInfiniteTransition(label = "working")
@@ -42,13 +46,21 @@ internal fun StatusBadge(status: AgentStatus) {
     Box(
         Modifier
             .alpha(if (status == AgentStatus.WORKING) alpha else 1f)
-            .then(if (unknown) Modifier.border(1.dp, Color.Gray, shape) else Modifier.background(color, shape))
+            .then(if (unknown) Modifier.border(1.dp, HerdrTheme.colors.muted, shape) else Modifier.background(color, shape))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(
-            status.name.lowercase(),
+            stringResource(status.label()),
             style = MaterialTheme.typography.labelSmall,
-            color = if (unknown) Color.Gray else Color.Black,
+            color = if (unknown) HerdrTheme.colors.muted else HerdrTheme.colors.onStatus,
         )
     }
+}
+
+private fun AgentStatus.label(): StringResource = when (this) {
+    AgentStatus.IDLE -> Res.string.status_idle
+    AgentStatus.WORKING -> Res.string.status_working
+    AgentStatus.BLOCKED -> Res.string.status_blocked
+    AgentStatus.DONE -> Res.string.status_done
+    AgentStatus.UNKNOWN -> Res.string.status_unknown
 }

@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
@@ -18,22 +20,23 @@ import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 @Composable
 internal fun ConnectionBanner(state: ConnectionState, hostName: String?, onHosts: () -> Unit) {
     val text = when (state) {
-        ConnectionState.Disconnected -> "Disconnected"
-        ConnectionState.Connecting -> "Connecting to ${hostName ?: "host"}?"
-        is ConnectionState.Connected -> "Connected to ${state.bridgeName}"
-        is ConnectionState.Error -> "Connection error: ${state.message}"
+        ConnectionState.Disconnected -> stringResource(Res.string.connection_disconnected)
+        ConnectionState.Connecting ->
+            stringResource(Res.string.connection_connecting, hostName ?: stringResource(Res.string.connection_connecting_unknown_host))
+        is ConnectionState.Connected -> stringResource(Res.string.connection_connected, state.bridgeName)
+        is ConnectionState.Error -> stringResource(Res.string.connection_error, state.message)
     }
     val color = when (state) {
-        is ConnectionState.Connected -> Color(0xFF23452C)
-        is ConnectionState.Error -> Color(0xFF4A2027)
-        else -> Color(0xFF303044)
+        is ConnectionState.Connected -> HerdrTheme.colors.bannerConnected
+        is ConnectionState.Error -> HerdrTheme.colors.bannerError
+        else -> HerdrTheme.colors.bannerNeutral
     }
     Row(
         Modifier.fillMaxWidth().background(color).clickable { onHosts() }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        Text("Hosts", color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(Res.string.connection_hosts), color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -41,15 +44,19 @@ internal fun ConnectionBanner(state: ConnectionState, hostName: String?, onHosts
 internal fun HerdrUnavailableBanner(herdrAvailable: Boolean) {
     if (herdrAvailable) return
     Row(
-        Modifier.fillMaxWidth().background(Color(0xFF5A3418)).padding(12.dp),
+        Modifier.fillMaxWidth().background(HerdrTheme.colors.bannerWarning).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            "herdr not running on PC",
+            stringResource(Res.string.herdr_unavailable),
             fontWeight = FontWeight.Bold,
-            color = Color(0xFFFFD8A8),
+            color = HerdrTheme.colors.onBannerWarning,
             modifier = Modifier.weight(1f),
         )
-        Text("Bridge connected", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFD8A8))
+        Text(
+            stringResource(Res.string.herdr_unavailable_bridge_ok),
+            style = MaterialTheme.typography.labelSmall,
+            color = HerdrTheme.colors.onBannerWarning,
+        )
     }
 }
