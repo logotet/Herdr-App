@@ -32,7 +32,7 @@ interface TerminalRepository {
 
     /** Raw keyboard bytes; the bridge accepts them only while this client has control. */
     suspend fun sendInput(paneId: String, bytes: ByteArray)
-    suspend fun sendKeys(paneId: String, keys: List<String>)
+    suspend fun sendKeys(paneId: String, keys: List<String>): CommandResult
     suspend fun sendText(paneId: String, text: String)
     /** Types [text] and presses Enter; works without control. */
     suspend fun submitPrompt(paneId: String, text: String): CommandResult

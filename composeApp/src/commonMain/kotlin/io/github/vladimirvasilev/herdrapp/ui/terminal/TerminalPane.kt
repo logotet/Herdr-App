@@ -11,6 +11,9 @@ expect fun TerminalPane(
     /** The frames of this pane only, in order. */
     frames: Flow<TerminalFrame>,
     controlling: Boolean,
+    /** Ctrl and Alt from the extra-keys rows, applied to what the phone keyboard types. */
+    ctrl: Boolean,
+    alt: Boolean,
     fontSizeSp: Float,
     history: String?,
     onInput: (ByteArray) -> Unit,

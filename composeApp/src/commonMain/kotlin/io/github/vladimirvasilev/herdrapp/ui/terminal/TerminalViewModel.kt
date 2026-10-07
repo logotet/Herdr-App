@@ -45,6 +45,7 @@ data class PaneUiState(
     val sending: Boolean = false,
     /** True while the pane on the PC is being scrolled to its newest output. */
     val jumping: Boolean = false,
+    val modifiers: KeyModifiers = KeyModifiers(),
 )
 
 data class TerminalUiState(
@@ -210,21 +211,39 @@ internal class TerminalViewModel(
     /** Raw keyboard bytes from the terminal view; dropped unless this client has control. */
     fun onInput(paneId: String, bytes: ByteArray) {
         if (!controlling(paneId)) return
+        // The terminal view already combined Ctrl or Alt into these bytes.
+        useModifiers(paneId)
         viewModelScope.launch { terminal.sendInput(paneId, bytes) }
     }
 
-    fun onKey(paneId: String, key: KeySpec) {
+    /** A key cap of the extra-keys rows: Ctrl and Alt toggle, every other key is sent. */
+    fun onKey(paneId: String, key: ExtraKey) {
+        val modifiers = (panes.value[paneId] ?: PaneUiState()).modifiers
+        if (key is ExtraKey.Modifier) {
+            update(paneId) { it.copy(modifiers = modifiers.tapped(key.modifier)) }
+            return
+        }
+        val spec = resolve(key, modifiers) ?: return
+        useModifiers(paneId)
         viewModelScope.launch {
-            when (key) {
+            when (spec) {
                 is KeySpec.Bytes ->
                     if (controlling(paneId)) {
-                        terminal.sendInput(paneId, key.bytes)
+                        terminal.sendInput(paneId, spec.bytes)
                     } else {
-                        terminal.sendText(paneId, key.textFallback)
+                        terminal.sendText(paneId, spec.textFallback)
                     }
-                is KeySpec.HerdrKey -> terminal.sendKeys(paneId, listOf(key.key))
+                is KeySpec.HerdrKey -> {
+                    val result = terminal.sendKeys(paneId, listOf(spec.key))
+                    if (result is CommandResult.Failure) notify(paneId, PaneNotice.SendFailed(result.message))
+                }
             }
         }
+    }
+
+    private fun useModifiers(paneId: String) {
+        val modifiers = panes.value[paneId]?.modifiers ?: return
+        if (modifiers.afterKey() != modifiers) update(paneId) { it.copy(modifiers = modifiers.afterKey()) }
     }
 
     fun takeControl(paneId: String) {

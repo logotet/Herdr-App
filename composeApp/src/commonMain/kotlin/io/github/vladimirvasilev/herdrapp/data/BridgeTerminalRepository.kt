@@ -92,9 +92,8 @@ class BridgeTerminalRepository(
         connection.inputBytes(paneId, bytes)
     }
 
-    override suspend fun sendKeys(paneId: String, keys: List<String>) {
-        connection.sendKeys(paneId, keys)
-    }
+    override suspend fun sendKeys(paneId: String, keys: List<String>): CommandResult =
+        connection.sendKeys(paneId, keys).toCommandResult()
 
     override suspend fun sendText(paneId: String, text: String) {
         connection.sendText(paneId, text)

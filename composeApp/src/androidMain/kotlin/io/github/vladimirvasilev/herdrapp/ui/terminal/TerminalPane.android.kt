@@ -41,6 +41,8 @@ actual fun TerminalPane(
     paneId: String,
     frames: Flow<TerminalFrame>,
     controlling: Boolean,
+    ctrl: Boolean,
+    alt: Boolean,
     fontSizeSp: Float,
     history: String?,
     onInput: (ByteArray) -> Unit,
@@ -57,9 +59,19 @@ actual fun TerminalPane(
     val currentOnFont = rememberUpdatedState(onFontSizeChanged)
     val currentFont = rememberUpdatedState(fontSizeSp)
     val currentControlling = rememberUpdatedState(controlling)
+    val currentCtrl = rememberUpdatedState(ctrl)
+    val currentAlt = rememberUpdatedState(alt)
 
     val bridge = remember(paneId) {
-        RemoteTerminalBridge(currentOnInput, currentOnResize, currentOnFont, currentFont, currentControlling)
+        RemoteTerminalBridge(
+            currentOnInput,
+            currentOnResize,
+            currentOnFont,
+            currentFont,
+            currentControlling,
+            currentCtrl,
+            currentAlt,
+        )
     }
 
     LaunchedEffect(paneId, frames) {
@@ -111,6 +123,8 @@ private class RemoteTerminalBridge(
     private val onFontSizeChanged: State<(Float) -> Unit>,
     private val fontSizeSp: State<Float>,
     private val controlling: State<Boolean>,
+    private val ctrl: State<Boolean>,
+    private val alt: State<Boolean>,
 ) : TerminalSessionClient, TerminalViewClient {
 
     var view: TerminalView? = null
@@ -243,8 +257,9 @@ private class RemoteTerminalBridge(
     override fun onKeyDown(keyCode: Int, e: KeyEvent, session: TerminalSession) = false
     override fun onKeyUp(keyCode: Int, e: KeyEvent) = false
     override fun onLongPress(event: MotionEvent) = false
-    override fun readControlKey() = false
-    override fun readAltKey() = false
+    // The view asks for these on every key from the phone keyboard and combines them itself.
+    override fun readControlKey() = ctrl.value
+    override fun readAltKey() = alt.value
     override fun readShiftKey() = false
     override fun readFnKey() = false
     override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession) = false

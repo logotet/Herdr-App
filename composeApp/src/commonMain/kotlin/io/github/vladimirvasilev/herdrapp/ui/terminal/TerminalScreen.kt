@@ -33,7 +33,7 @@ internal class PaneActions(
     val onBack: () -> Unit,
     val onGridMeasured: (cols: Int, rows: Int) -> Unit,
     val onInput: (ByteArray) -> Unit,
-    val onKey: (KeySpec) -> Unit,
+    val onKey: (ExtraKey) -> Unit,
     val onDraftChange: (TextFieldValue) -> Unit,
     val onSubmit: () -> Unit,
     val onLoadHistory: () -> Unit,
@@ -63,6 +63,8 @@ internal fun TerminalScreen(
                 paneId = pane.paneId,
                 frames = frames,
                 controlling = state.controlling,
+                ctrl = state.modifiers.ctrl.active,
+                alt = state.modifiers.alt.active,
                 fontSizeSp = fontSizeSp,
                 history = state.history,
                 onInput = actions.onInput,
@@ -100,7 +102,7 @@ internal fun TerminalScreen(
                 onSend = actions.onSubmit,
             )
         }
-        ExtraKeysBar(onKey = actions.onKey)
+        ExtraKeysBar(modifiers = state.modifiers, onKey = actions.onKey)
     }
     if (confirmTakeover) {
         TakeControlDialog(

@@ -59,6 +59,7 @@ class FakeTerminalRepository : TerminalRepository {
     override val streamModes = MutableStateFlow<Map<String, StreamMode>>(emptyMap())
     val calls = mutableListOf<String>()
     var submitResult: CommandResult = CommandResult.Success
+    var keysResult: CommandResult = CommandResult.Success
     var historyResult: HistoryResult = HistoryResult.Empty
     var scrollResult: CommandResult = CommandResult.Success
 
@@ -88,8 +89,9 @@ class FakeTerminalRepository : TerminalRepository {
         calls += "input $paneId ${bytes.decodeToString()}"
     }
 
-    override suspend fun sendKeys(paneId: String, keys: List<String>) {
+    override suspend fun sendKeys(paneId: String, keys: List<String>): CommandResult {
         calls += "keys $paneId ${keys.joinToString(",")}"
+        return keysResult
     }
 
     override suspend fun sendText(paneId: String, text: String) {

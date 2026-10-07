@@ -11,7 +11,10 @@ import io.github.vladimirvasilev.herdrapp.domain.PaneHistory
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.StreamMode
 import io.github.vladimirvasilev.herdrapp.domain.Workspace
-import io.github.vladimirvasilev.herdrapp.ui.terminal.KeySpec
+import io.github.vladimirvasilev.herdrapp.ui.terminal.ExtraKey
+import io.github.vladimirvasilev.herdrapp.ui.terminal.KeyModifier
+import io.github.vladimirvasilev.herdrapp.ui.terminal.KeyModifiers
+import io.github.vladimirvasilev.herdrapp.ui.terminal.ModifierState
 import io.github.vladimirvasilev.herdrapp.ui.terminal.PaneNotice
 import io.github.vladimirvasilev.herdrapp.ui.terminal.PaneUiState
 import io.github.vladimirvasilev.herdrapp.ui.terminal.TerminalViewModel
@@ -176,7 +179,7 @@ class TerminalViewModelTest {
     @Test
     fun plainKeysAreTypedAsTextUnlessThisClientHasControl() = runTest(dispatcher) {
         val viewModel = viewModel()
-        val key = KeySpec.Bytes("y".encodeToByteArray(), "y")
+        val key = ExtraKey.Text("y")
 
         viewModel.onKey(PANE, key)
         viewModel.onInput(PANE, "ignored".encodeToByteArray())
@@ -184,10 +187,60 @@ class TerminalViewModelTest {
         terminal.streamModes.value = mapOf(PANE to StreamMode.CONTROL)
         viewModel.onKey(PANE, key)
         viewModel.onInput(PANE, "raw".encodeToByteArray())
-        viewModel.onKey(PANE, KeySpec.HerdrKey("esc"))
+        viewModel.onKey(PANE, ESC)
         runCurrent()
 
         assertEquals(listOf("text $PANE y", "input $PANE y", "input $PANE raw", "keys $PANE esc"), terminal.calls)
+    }
+
+    @Test
+    fun ctrlAppliesToTheNextKeyOnly() = runTest(dispatcher) {
+        val viewModel = viewModel()
+
+        viewModel.onKey(PANE, CTRL)
+        assertEquals(ModifierState.ONCE, pane(viewModel).modifiers.ctrl)
+        viewModel.onKey(PANE, UP)
+        viewModel.onKey(PANE, UP)
+        runCurrent()
+
+        assertEquals(listOf("keys $PANE ctrl+up", "keys $PANE up"), terminal.calls)
+        assertEquals(KeyModifiers(), pane(viewModel).modifiers)
+    }
+
+    @Test
+    fun aLockedModifierStaysOnUntilItIsTappedAgain() = runTest(dispatcher) {
+        val viewModel = viewModel()
+
+        viewModel.onKey(PANE, CTRL)
+        viewModel.onKey(PANE, CTRL)
+        viewModel.onKey(PANE, UP)
+        viewModel.onKey(PANE, UP)
+        viewModel.onKey(PANE, CTRL)
+        viewModel.onKey(PANE, UP)
+        runCurrent()
+
+        assertEquals(listOf("keys $PANE ctrl+up", "keys $PANE ctrl+up", "keys $PANE up"), terminal.calls)
+    }
+
+    @Test
+    fun typingOnThePhoneKeyboardUsesUpAOneShotModifier() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        terminal.streamModes.value = mapOf(PANE to StreamMode.CONTROL)
+
+        viewModel.onKey(PANE, CTRL)
+        viewModel.onInput(PANE, byteArrayOf(0x17))
+
+        assertEquals(KeyModifiers(), pane(viewModel).modifiers)
+    }
+
+    @Test
+    fun aKeyHerdrRejectsIsReported() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        terminal.keysResult = CommandResult.Failure("unknown key")
+
+        viewModel.onKey(PANE, ESC)
+
+        assertEquals(PaneNotice.SendFailed("unknown key"), pane(viewModel).notice)
     }
 
     @Test
@@ -319,6 +372,9 @@ class TerminalViewModelTest {
 
     private companion object {
         const val PANE = "w1:p1"
+        val ESC = ExtraKey.Named("Esc", "esc")
+        val UP = ExtraKey.Named("Up", "up")
+        val CTRL = ExtraKey.Modifier("Ctrl", KeyModifier.CTRL)
         val LONG_HISTORY = (1..40).joinToString("\n") { "line $it" }
     }
 }
