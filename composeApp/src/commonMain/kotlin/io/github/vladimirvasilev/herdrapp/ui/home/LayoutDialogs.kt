@@ -20,6 +20,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import herdrapp.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Shows [dialog]; [onConfirm] gets the typed name, empty for the dialogs that ask for none. */
@@ -68,7 +69,7 @@ internal fun LayoutDialog(dialog: HomeDialog, onConfirm: (name: String) -> Unit,
         )
         is HomeDialog.CloseWorkspace -> CloseDialog(
             title = stringResource(Res.string.home_close_workspace_title, dialog.label),
-            body = stringResource(Res.string.home_close_workspace_body, dialog.paneCount),
+            body = pluralStringResource(Res.plurals.home_close_workspace_body, dialog.paneCount, dialog.paneCount),
             onConfirm = { onConfirm("") },
             onDismiss = onDismiss,
         )
