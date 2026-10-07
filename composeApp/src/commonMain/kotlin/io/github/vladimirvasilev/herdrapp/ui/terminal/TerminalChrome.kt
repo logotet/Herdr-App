@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -20,24 +23,25 @@ import org.jetbrains.compose.resources.stringResource
 import io.github.vladimirvasilev.herdrapp.ui.theme.HerdrTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.vladimirvasilev.herdrapp.domain.Agent
-import io.github.vladimirvasilev.herdrapp.ui.components.StatusBadge
+import io.github.vladimirvasilev.herdrapp.ui.components.StatusDot
 
 @Composable
-internal fun TerminalTopBar(
-    agent: Agent,
-    controlling: Boolean,
-    onBack: () -> Unit,
-    onRelease: () -> Unit,
-    onTakeControl: () -> Unit,
-) {
+internal fun TerminalTopBar(agent: Agent, onBack: () -> Unit) {
+    val backLabel = stringResource(Res.string.terminal_back)
     Row(
-        Modifier.fillMaxWidth().background(HerdrTheme.colors.panel).padding(horizontal = 8.dp, vertical = 6.dp),
+        Modifier.fillMaxWidth().background(HerdrTheme.colors.panel).padding(end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TextButton(onClick = onBack) { Text(stringResource(Res.string.terminal_back)) }
+        IconButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = backLabel }) {
+            Text("←", style = MaterialTheme.typography.titleLarge)
+        }
+        StatusDot(agent.status)
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(agent.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
@@ -46,12 +50,32 @@ internal fun TerminalTopBar(
                 style = MaterialTheme.typography.labelSmall,
             )
         }
-        StatusBadge(agent.status)
-        Spacer(Modifier.width(8.dp))
-        if (controlling) {
-            Button(onClick = onRelease) { Text(stringResource(Res.string.terminal_release)) }
-        } else {
-            Button(onClick = onTakeControl) { Text(stringResource(Res.string.terminal_take_control)) }
+    }
+}
+
+/**
+ * Takes or releases control of the pane. Small while controlling, so it covers less of the last
+ * rows, and in the warning colour as a reminder that the PC pane is held.
+ */
+@Composable
+internal fun BoxScope.ControlFab(controlling: Boolean, onTakeControl: () -> Unit, onRelease: () -> Unit) {
+    val modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
+    if (controlling) {
+        SmallFloatingActionButton(
+            onClick = onRelease,
+            modifier = modifier,
+            containerColor = HerdrTheme.colors.bannerWarning,
+            contentColor = HerdrTheme.colors.onBannerWarning,
+        ) {
+            Text(
+                stringResource(Res.string.terminal_release),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+        }
+    } else {
+        ExtendedFloatingActionButton(onClick = onTakeControl, modifier = modifier) {
+            Text(stringResource(Res.string.terminal_take_control))
         }
     }
 }

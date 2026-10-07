@@ -56,13 +56,7 @@ internal fun TerminalScreen(
     var confirmTakeover by rememberSaveable(agent.paneId) { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
-        TerminalTopBar(
-            agent = agent,
-            controlling = pane.controlling,
-            onBack = actions.onBack,
-            onRelease = actions.onReleaseControl,
-            onTakeControl = { confirmTakeover = true },
-        )
+        TerminalTopBar(agent = agent, onBack = actions.onBack)
         HerdrUnavailableBanner(herdrAvailable)
         Box(Modifier.fillMaxWidth().weight(1f)) {
             TerminalPane(
@@ -80,11 +74,18 @@ internal fun TerminalScreen(
             )
             if (pane.history != null) {
                 HistoryOverlay(onLive = actions.onExitHistory)
-            } else if (agent.scrolledBackLines > 0) {
-                ScrolledBackOverlay(
-                    lines = agent.scrolledBackLines,
-                    canJump = agent.pcGrid != null && !pane.jumping,
-                    onJump = actions.onJumpToLatest,
+            } else {
+                if (agent.scrolledBackLines > 0) {
+                    ScrolledBackOverlay(
+                        lines = agent.scrolledBackLines,
+                        canJump = agent.pcGrid != null && !pane.jumping,
+                        onJump = actions.onJumpToLatest,
+                    )
+                }
+                ControlFab(
+                    controlling = pane.controlling,
+                    onTakeControl = { confirmTakeover = true },
+                    onRelease = actions.onReleaseControl,
                 )
             }
             if (pane.historyLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
