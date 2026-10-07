@@ -1,6 +1,6 @@
 # Herdr App
 
-Herdr App is a mobile-first Android client for the [herdr](https://herdr.dev) terminal multiplexer. It connects to a local `herdr-bridge` WebSocket over Tailscale, lists AI coding-agent panes, opens one pane full-screen, and supports observe/control terminal streaming with quick action keys.
+Herdr App is a mobile-first Android client for the [herdr](https://herdr.dev) terminal multiplexer. It connects to a local `herdr-bridge` WebSocket over Tailscale, lists the workspaces with their tabs and panes, opens one pane full-screen, and supports observe/control terminal streaming with quick action keys.
 
 ## Build
 
@@ -16,9 +16,11 @@ On the workspace list, long-press a pane or a tab name to rename or close it, an
 
 ## Using a pane
 
-- **Prompt box** (always under the pane): uses the normal phone keyboard (autocorrect, swipe, voice, paste). Enter or the ➤ button sends the text plus Enter to the pane through herdr `pane.send_input`. This works without taking control, so the PC pane is never resized. To add a new line, long-press ➤ or use Shift+Enter on a hardware keyboard. Pasted multi-line text arrives as one prompt in Claude Code and Copilot CLI. Sending an empty box just presses Enter. Each pane keeps its own draft while you swipe between agents.
+- **Prompt box** (under a pane that runs an agent; a shell or an editor has none, because the text and its Enter would run there as commands): uses the normal phone keyboard (autocorrect, swipe, voice, paste). Enter or the ➤ button sends the text plus Enter to the pane through herdr `pane.send_input`. This works without taking control, so the PC pane is never resized. To add a new line, long-press ➤ or use Shift+Enter on a hardware keyboard. Pasted multi-line text arrives as one prompt in Claude Code and Copilot CLI. Sending an empty box just presses Enter. Each pane keeps its own draft while you swipe between agents.
 - **Scrolling**: swipe down on the pane to open **History**. The app loads the pane's recent output with herdr `pane.read` (`recent_unwrapped`, ANSI, up to 1000 rows), so lines re-wrap to the phone width. You scroll it locally, and the PC view never moves. Long-press selects text to copy. Tap **↓ Live**, keep scrolling down past the end, or send a prompt to return to the live stream. Full-screen apps (for example Copilot CLI) keep no herdr scrollback; use PgUp/PgDn there.
-- **Take control**: raw terminal keyboard for TUI keys. This resizes the real PC pane while you hold control.
+- **Take control** (the round keyboard button): raw terminal keyboard for TUI keys. This resizes the real PC pane while you hold control. The button turns red while you hold it; tap it to release.
+- **Key rows**: two rows of keys under the pane, one set for agents and one for other panes. They are sent without taking control. **Ctrl** and **Alt** apply to the next key, from the rows or from the phone keyboard; a second tap locks them.
+- **Swiping**: from an agent, left and right go through all agents. From any other pane they stay inside its workspace.
 
 ## Module layout
 
