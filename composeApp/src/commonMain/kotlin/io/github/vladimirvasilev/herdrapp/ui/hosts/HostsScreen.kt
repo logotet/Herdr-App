@@ -27,13 +27,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.vladimirvasilev.herdrapp.AppContainer
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
-import io.github.vladimirvasilev.herdrapp.ui.LocalQrScannerService
 
 @Composable
 internal fun HostsRoute(container: AppContainer, onDone: () -> Unit) {
     val viewModel = viewModel { HostsViewModel(container.hosts, container.session) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val scanner = LocalQrScannerService.current
+    val scan = LocalQrScanner.current.rememberLauncher { raw -> if (viewModel.onScanned(raw)) onDone() }
     HostsScreen(
         state = state,
         onBack = onDone,
@@ -42,7 +41,7 @@ internal fun HostsRoute(container: AppContainer, onDone: () -> Unit) {
             onDone()
         },
         onDelete = viewModel::delete,
-        onScan = { scanner.scan { raw -> if (viewModel.onScanned(raw)) onDone() } },
+        onScan = scan,
         onNameChange = viewModel::onNameChange,
         onHostChange = viewModel::onHostChange,
         onPortChange = viewModel::onPortChange,

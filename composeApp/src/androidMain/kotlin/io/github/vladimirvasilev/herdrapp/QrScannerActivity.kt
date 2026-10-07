@@ -2,10 +2,13 @@ package io.github.vladimirvasilev.herdrapp
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -60,4 +63,12 @@ class QrScannerActivity : ComponentActivity() {
     override fun onDestroy() { executor.shutdown(); scanner.close(); super.onDestroy() }
 
     companion object { const val EXTRA_RESULT = "qr_result" }
+}
+
+/** Opens the scanner and returns the pairing URI it read, or null when the user backed out. */
+class ScanPairingQr : ActivityResultContract<Unit, String?>() {
+    override fun createIntent(context: Context, input: Unit) = Intent(context, QrScannerActivity::class.java)
+
+    override fun parseResult(resultCode: Int, intent: Intent?): String? =
+        intent?.takeIf { resultCode == Activity.RESULT_OK }?.getStringExtra(QrScannerActivity.EXTRA_RESULT)
 }

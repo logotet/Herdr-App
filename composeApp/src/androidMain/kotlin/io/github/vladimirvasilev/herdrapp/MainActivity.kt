@@ -1,42 +1,34 @@
 package io.github.vladimirvasilev.herdrapp
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import io.github.vladimirvasilev.herdrapp.ui.HerdrApp
-import io.github.vladimirvasilev.herdrapp.ui.LocalQrScannerService
-import io.github.vladimirvasilev.herdrapp.ui.QrScannerService
+import io.github.vladimirvasilev.herdrapp.ui.hosts.LocalQrScanner
+import io.github.vladimirvasilev.herdrapp.ui.hosts.QrScanner
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val app = application as HerdrApplication
+        val container = (application as HerdrApplication).container
         setContent {
-            val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                QrScanResultDispatcher.consume(result.resultCode == Activity.RESULT_OK, result.data?.getStringExtra(QrScannerActivity.EXTRA_RESULT))
-            }
-            val scanner = remember {
-                object : QrScannerService {
-                    override fun scan(onResult: (String?) -> Unit) {
-                        QrScanResultDispatcher.callback = onResult
-                        launcher.launch(Intent(this@MainActivity, QrScannerActivity::class.java))
-                    }
-                }
-            }
-            CompositionLocalProvider(LocalQrScannerService provides scanner) {
-                HerdrApp(app.container)
+            CompositionLocalProvider(LocalQrScanner provides CameraQrScanner) {
+                HerdrApp(container)
             }
         }
     }
 }
 
-private object QrScanResultDispatcher {
-    var callback: ((String?) -> Unit)? = null
-    fun consume(ok: Boolean, value: String?) { callback?.invoke(if (ok) value else null); callback = null }
+private object CameraQrScanner : QrScanner {
+    @Composable
+    override fun rememberLauncher(onResult: (String?) -> Unit): () -> Unit {
+        val currentOnResult by rememberUpdatedState(onResult)
+        val launcher = rememberLauncherForActivityResult(ScanPairingQr()) { currentOnResult(it) }
+        return { launcher.launch(Unit) }
+    }
 }
