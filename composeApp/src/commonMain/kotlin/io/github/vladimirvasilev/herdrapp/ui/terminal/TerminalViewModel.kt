@@ -74,6 +74,8 @@ internal class TerminalViewModel(
     private val sentGrids = mutableMapOf<String, Pair<Int, Int>>()
     private val resizeJobs = mutableMapOf<String, Job>()
     private val openStreams = mutableSetOf<String>()
+    /** Panes that were under control when they left the screen; control is taken back on return. */
+    private val resumeControl = mutableSetOf<String>()
     private val noScrollbackAt = mutableMapOf<String, TimeMark>()
     private val noticeJobs = mutableMapOf<String, Job>()
 
@@ -111,7 +113,11 @@ internal class TerminalViewModel(
         grids[paneId] = grid
         if (openStreams.add(paneId)) {
             sentGrids[paneId] = grid
-            viewModelScope.launch { terminal.open(paneId, cols, rows) }
+            val resume = resumeControl.remove(paneId)
+            viewModelScope.launch {
+                terminal.open(paneId, cols, rows)
+                if (resume) terminal.takeControl(paneId, cols, rows)
+            }
             return
         }
         resizeJobs.remove(paneId)?.cancel()
@@ -124,8 +130,12 @@ internal class TerminalViewModel(
         }
     }
 
-    /** The pane left the screen: stop its stream and forget everything except the draft. */
+    /**
+     * The pane left the screen: stop its stream and forget everything except the draft. Closing
+     * the stream releases control, so a pane that was controlled is remembered for its return.
+     */
     fun onPaneGone(paneId: String) {
+        if (controlling(paneId)) resumeControl += paneId else resumeControl -= paneId
         terminal.close(paneId)
         openStreams -= paneId
         grids -= paneId
@@ -219,6 +229,7 @@ internal class TerminalViewModel(
     }
 
     fun releaseControl(paneId: String) {
+        resumeControl -= paneId
         viewModelScope.launch { terminal.releaseControl(paneId) }
     }
 

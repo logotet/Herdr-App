@@ -200,6 +200,36 @@ class TerminalViewModelTest {
         assertEquals(listOf("open $PANE 45x30", "takeControl $PANE 45x28"), terminal.calls)
     }
 
+    @Test
+    fun aControlledPaneThatLeavesIsTakenBackWhenItReturns() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.onGridMeasured(PANE, 45, 30)
+        terminal.streamModes.value = mapOf(PANE to StreamMode.CONTROL)
+        runCurrent()
+        terminal.calls.clear()
+
+        viewModel.onPaneGone(PANE)
+        terminal.streamModes.value = emptyMap()
+        viewModel.onGridMeasured(PANE, 45, 28)
+        runCurrent()
+
+        assertEquals(listOf("close $PANE", "open $PANE 45x28", "takeControl $PANE 45x28"), terminal.calls)
+    }
+
+    @Test
+    fun anObservedPaneThatLeavesComesBackObserved() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.onGridMeasured(PANE, 45, 30)
+        runCurrent()
+        terminal.calls.clear()
+
+        viewModel.onPaneGone(PANE)
+        viewModel.onGridMeasured(PANE, 45, 30)
+        runCurrent()
+
+        assertEquals(listOf("close $PANE", "open $PANE 45x30"), terminal.calls)
+    }
+
     private fun scrolledBack(lines: Int, pcGrid: GridSize? = GridSize(144, 39)) = Session(
         agents = listOf(Agent(PANE, "w1", null, "claude", "Fix tests", AgentStatus.IDLE, null, lines, pcGrid)),
     )
