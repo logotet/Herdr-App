@@ -1,7 +1,7 @@
 package io.github.vladimirvasilev.herdrapp
 
-import io.github.vladimirvasilev.herdrapp.ui.isEnterPress
-import io.github.vladimirvasilev.herdrapp.ui.normalizePrompt
+import io.github.vladimirvasilev.herdrapp.ui.terminal.isEnterPress
+import io.github.vladimirvasilev.herdrapp.ui.terminal.normalizePrompt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

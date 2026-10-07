@@ -1,0 +1,129 @@
+package io.github.vladimirvasilev.herdrapp.ui.home
+
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import io.github.vladimirvasilev.herdrapp.data.SavedHost
+import io.github.vladimirvasilev.herdrapp.network.BridgeConnection
+import io.github.vladimirvasilev.herdrapp.protocol.WorkspaceInfo
+import io.github.vladimirvasilev.herdrapp.state.AgentOrganizer
+import io.github.vladimirvasilev.herdrapp.state.HerdrStore
+import io.github.vladimirvasilev.herdrapp.ui.components.ConnectionBanner
+import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner
+
+@Composable
+internal fun HomeScreen(
+    store: HerdrStore,
+    connection: BridgeConnection,
+    hostList: List<SavedHost>,
+    onOpen: (String) -> Unit,
+    onHosts: () -> Unit,
+    onRefresh: () -> Unit,
+) {
+    val state by store.connectionState.collectAsState()
+    val workspaces by store.workspaces.collectAsState()
+    val agents by store.agents.collectAsState()
+    val panes by store.panes.collectAsState()
+    val previews by store.previews.collectAsState()
+    val currentHost by connection.currentHost.collectAsState()
+    val herdrStatus by store.herdrStatus.collectAsState()
+    val groups = remember(workspaces, agents, panes) { AgentOrganizer.groups(workspaces, agents, panes) }
+    val needsYou = remember(agents) { AgentOrganizer.needsYou(agents) }
+    Column(Modifier.fillMaxSize()) {
+        ConnectionBanner(state, currentHost, onHosts)
+        HerdrUnavailableBanner(herdrStatus)
+        if (hostList.isEmpty()) {
+            EmptyHosts(onHosts)
+            return@Column
+        }
+        LazyColumn(
+            Modifier.fillMaxSize().pointerInput(Unit) {
+                var drag = 0f
+                detectDragGestures(
+                    onDragEnd = {
+                        if (drag > 120f) onRefresh()
+                        drag = 0f
+                    },
+                ) { change, amount ->
+                    change.consume()
+                    drag += amount.y
+                }
+            },
+            contentPadding = PaddingValues(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            item { HeaderRow("Agents", "Pull down to refresh") }
+            if (needsYou.isNotEmpty()) {
+                item { SectionTitle("Needs you") }
+                items(needsYou, key = { "needs-${it.paneId}" }) { AgentRow(it, previews[it.paneId], onOpen) }
+            }
+            groups.forEach { group ->
+                item { WorkspaceHeader(group.workspace) }
+                items(group.agents, key = { it.paneId }) { AgentRow(it, previews[it.paneId], onOpen) }
+                if (group.otherPanes.isNotEmpty()) item { OtherPanes(group.otherPanes) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyHosts(onHosts: () -> Unit) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("No bridge host paired", style = MaterialTheme.typography.titleLarge)
+            Text("Add a herdr-bridge host by QR scan or manual entry.")
+            Button(onClick = onHosts) { Text("Add host") }
+        }
+    }
+}
+
+@Composable
+private fun HeaderRow(title: String, subtitle: String) {
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f),
+        )
+        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
+}
+
+@Composable
+private fun WorkspaceHeader(ws: WorkspaceInfo) {
+    Text(
+        "${ws.number}. ${ws.label} (${ws.paneCount})",
+        style = MaterialTheme.typography.titleSmall,
+        color = Color(0xFFBAC2DE),
+        modifier = Modifier.padding(top = 6.dp),
+    )
+}

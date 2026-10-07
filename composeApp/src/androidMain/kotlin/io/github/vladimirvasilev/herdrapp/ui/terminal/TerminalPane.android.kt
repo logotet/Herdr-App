@@ -1,4 +1,4 @@
-package io.github.vladimirvasilev.herdrapp.ui
+package io.github.vladimirvasilev.herdrapp.ui.terminal
 
 import android.content.ClipData
 import android.content.ClipboardManager

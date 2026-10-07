@@ -1,4 +1,4 @@
-package io.github.vladimirvasilev.herdrapp.ui
+package io.github.vladimirvasilev.herdrapp.ui.terminal
 
 /**
  * True when [new] is [old] with exactly one line feed typed into it, i.e. the user pressed Enter

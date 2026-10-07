@@ -1,4 +1,4 @@
-package io.github.vladimirvasilev.herdrapp.ui
+package io.github.vladimirvasilev.herdrapp.ui.terminal
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
