@@ -65,15 +65,17 @@ class BridgeConnection(
                         if (frame is Frame.Text) handleIncomingText(frame.readText())
                     }
                 }
+                store.setConnectionState(ConnectionState.Error("Connection closed"))
             } catch (ce: CancellationException) {
                 throw ce
             } catch (t: Throwable) {
                 store.setConnectionState(ConnectionState.Error(t.message ?: t::class.simpleName ?: "Connection error"))
-                tracker.failAll(BridgeError("connection_lost", "Connection lost"))
-                session = null
-                delay(delayMs)
-                delayMs = min(delayMs * 2, 30_000L)
             }
+            // A clean close by the server backs off like an error instead of reconnecting in a tight loop.
+            tracker.failAll(BridgeError("connection_lost", "Connection lost"))
+            session = null
+            delay(delayMs)
+            delayMs = min(delayMs * 2, 30_000L)
         }
     }
 
