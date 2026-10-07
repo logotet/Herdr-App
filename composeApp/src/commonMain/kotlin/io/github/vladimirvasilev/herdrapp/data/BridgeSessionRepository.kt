@@ -42,6 +42,13 @@ class BridgeSessionRepository(private val connection: BridgeConnection) : Sessio
 
     override suspend fun closeTab(tabId: String) = changed(connection.closeTab(tabId))
 
+    override suspend fun createWorkspace(label: String?) = changed(connection.createWorkspace(label))
+
+    override suspend fun renameWorkspace(workspaceId: String, label: String) =
+        changed(connection.renameWorkspace(workspaceId, label))
+
+    override suspend fun closeWorkspace(workspaceId: String) = changed(connection.closeWorkspace(workspaceId))
+
     /** After a change to the layout, asks for a snapshot instead of waiting for the bridge to notice. */
     private suspend fun changed(outcome: RequestOutcome): CommandResult {
         if (outcome is RequestOutcome.Success) connection.refresh()

@@ -211,6 +211,17 @@ class BridgeConnection(
     suspend fun closeTab(tabId: String): RequestOutcome =
         call("tab.close", buildJsonObject { put("tab_id", tabId) })
 
+    /** Adds a workspace in herdr's default folder, without moving the focus on the PC. */
+    suspend fun createWorkspace(label: String?): RequestOutcome =
+        call("workspace.create", buildJsonObject { if (label != null) put("label", label) })
+
+    suspend fun renameWorkspace(workspaceId: String, label: String): RequestOutcome =
+        call("workspace.rename", buildJsonObject { put("workspace_id", workspaceId); put("label", label) })
+
+    /** Closes the workspace with every tab and pane in it. */
+    suspend fun closeWorkspace(workspaceId: String): RequestOutcome =
+        call("workspace.close", buildJsonObject { put("workspace_id", workspaceId) })
+
     /** Types [text] into the pane and presses Enter in one herdr call; works without control. */
     suspend fun submitPrompt(paneId: String, text: String): RequestOutcome {
         val params = buildJsonObject {

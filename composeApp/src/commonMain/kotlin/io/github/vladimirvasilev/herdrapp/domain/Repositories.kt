@@ -22,6 +22,11 @@ interface SessionRepository {
     suspend fun renameTab(tabId: String, label: String): CommandResult
     /** Closes the tab on the PC with every pane in it. This cannot be undone. */
     suspend fun closeTab(tabId: String): CommandResult
+    /** Adds a workspace in herdr's default folder; [label] is its name, when given. */
+    suspend fun createWorkspace(label: String?): CommandResult
+    suspend fun renameWorkspace(workspaceId: String, label: String): CommandResult
+    /** Closes the workspace on the PC with everything in it. This cannot be undone. */
+    suspend fun closeWorkspace(workspaceId: String): CommandResult
 }
 
 /** Live terminal streams and the input that can be sent to a pane. */

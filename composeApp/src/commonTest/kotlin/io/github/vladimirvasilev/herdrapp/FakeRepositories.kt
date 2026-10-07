@@ -47,6 +47,13 @@ class FakeSessionRepository : SessionRepository {
 
     override suspend fun closeTab(tabId: String) = change("closeTab $tabId")
 
+    override suspend fun createWorkspace(label: String?) = change("createWorkspace $label")
+
+    override suspend fun renameWorkspace(workspaceId: String, label: String) =
+        change("renameWorkspace $workspaceId $label")
+
+    override suspend fun closeWorkspace(workspaceId: String) = change("closeWorkspace $workspaceId")
+
     private fun change(line: String): CommandResult {
         changes += line
         return changeResult

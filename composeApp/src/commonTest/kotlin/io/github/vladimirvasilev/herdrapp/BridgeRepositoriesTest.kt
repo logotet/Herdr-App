@@ -238,6 +238,10 @@ class BridgeRepositoriesTest {
                 rig.session.createTab("w1", null),
                 rig.session.renameTab("w1:t1", "git"),
                 rig.session.closeTab("w1:t1"),
+                rig.session.createWorkspace("scratch"),
+                rig.session.createWorkspace(null),
+                rig.session.renameWorkspace("w1", "mobile"),
+                rig.session.closeWorkspace("w1"),
             )
         }
         with(rig) { answerRequests() }
@@ -252,10 +256,14 @@ class BridgeRepositoriesTest {
                 """"tab.create","params":{"workspace_id":"w1"}}""",
                 """"tab.rename","params":{"tab_id":"w1:t1","label":"git"}}""",
                 """"tab.close","params":{"tab_id":"w1:t1"}}""",
+                """"workspace.create","params":{"label":"scratch"}}""",
+                """"workspace.create","params":{}}""",
+                """"workspace.rename","params":{"workspace_id":"w1","label":"mobile"}}""",
+                """"workspace.close","params":{"workspace_id":"w1"}}""",
             ),
             calls,
         )
-        assertEquals(6, rig.sentTypes().count { it == "refresh" })
+        assertEquals(10,rig.sentTypes().count { it == "refresh" })
     }
 
     @Test
