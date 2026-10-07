@@ -26,16 +26,18 @@ internal fun TerminalRoute(container: AppContainer, initialPaneId: String, onBac
 private fun TerminalPagerScreen(viewModel: TerminalViewModel, initialPaneId: String, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val agents = state.agents
-    val pagerState = rememberPagerState(
-        initialPage = agents.indexOfFirst { it.paneId == initialPaneId }.coerceAtLeast(0),
-        pageCount = { agents.size.coerceAtLeast(1) },
-    )
     if (agents.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             TextButton(onClick = onBack) { Text("No agents. Back") }
         }
         return
     }
+    // Created only once there are agents, so the first page is the pane that was asked for even
+    // when the list arrives after the screen does (for example after the process was restored).
+    val pagerState = rememberPagerState(
+        initialPage = agents.indexOfFirst { it.paneId == initialPaneId }.coerceAtLeast(0),
+        pageCount = { agents.size },
+    )
     val currentPaneId = agents.getOrNull(pagerState.currentPage)?.paneId
     HorizontalPager(
         state = pagerState,

@@ -29,9 +29,8 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'; .\gradlew.bat asse
   `XScreen.kt`, `XViewModel.kt` and `XUiState.kt`.
 - Wiring lives in `HerdrApplication`. Pass dependencies through constructors.
 
-Known debt, to be migrated rather than extended: composables still receive repositories and
-start their calls from `rememberCoroutineScope`, and navigation is a plain `remember` in
-`ui/HerdrApp.kt`.
+- Screens are destinations in `ui/navigation/HerdrNavHost.kt`, with typed `@Serializable` routes.
+  A route carries ids only, never a model.
 
 ## UI rules
 
