@@ -77,7 +77,7 @@ internal fun HomeScreen(
             state.groups.forEach { group ->
                 item { WorkspaceHeader(group.workspace) }
                 items(group.agents, key = { it.paneId }) { AgentRow(it, onOpen) }
-                if (group.otherPanes.isNotEmpty()) item { OtherPanes(group.otherPanes) }
+                if (group.otherPanes.isNotEmpty()) item { OtherPanes(group.otherPanes, onOpen) }
             }
         }
     }

@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.ui.components.StatusDot
 
@@ -43,8 +42,10 @@ internal fun TerminalTopBar(pane: Pane, onBack: () -> Unit) {
                 contentDescription = stringResource(Res.string.terminal_back),
             )
         }
-        StatusDot(pane.agent?.status ?: AgentStatus.UNKNOWN)
-        Spacer(Modifier.width(10.dp))
+        pane.agent?.let { agent ->
+            StatusDot(agent.status)
+            Spacer(Modifier.width(10.dp))
+        }
         Column(Modifier.weight(1f)) {
             Text(pane.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(

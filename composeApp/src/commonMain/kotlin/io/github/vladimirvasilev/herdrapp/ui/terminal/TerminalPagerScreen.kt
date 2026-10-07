@@ -20,34 +20,36 @@ import io.github.vladimirvasilev.herdrapp.AppContainer
 
 @Composable
 internal fun TerminalRoute(container: AppContainer, initialPaneId: String, onBack: () -> Unit) {
-    val viewModel = viewModel { TerminalViewModel(container.session, container.terminal, container.settings) }
+    val viewModel = viewModel {
+        TerminalViewModel(container.session, container.terminal, container.settings, initialPaneId)
+    }
     TerminalPagerScreen(viewModel, initialPaneId, onBack)
 }
 
 @Composable
 private fun TerminalPagerScreen(viewModel: TerminalViewModel, initialPaneId: String, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val agents = state.agents
-    if (agents.isEmpty()) {
+    val panes = state.panes
+    if (panes.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             TextButton(onClick = onBack) { Text(stringResource(Res.string.terminal_no_agents)) }
         }
         return
     }
-    // Created only once there are agents, so the first page is the pane that was asked for even
+    // Created only once there are panes, so the first page is the pane that was asked for even
     // when the list arrives after the screen does (for example after the process was restored).
     val pagerState = rememberPagerState(
-        initialPage = agents.indexOfFirst { it.paneId == initialPaneId }.coerceAtLeast(0),
-        pageCount = { agents.size },
+        initialPage = panes.indexOfFirst { it.paneId == initialPaneId }.coerceAtLeast(0),
+        pageCount = { panes.size },
     )
-    val currentPaneId = agents.getOrNull(pagerState.currentPage)?.paneId
+    val currentPaneId = panes.getOrNull(pagerState.currentPage)?.paneId
     HorizontalPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
         // History is a reading mode: paging is off while the current pane shows it (leave via ↓ Live).
         userScrollEnabled = currentPaneId == null || state.pane(currentPaneId).history == null,
     ) { page ->
-        val pane = agents[page.coerceAtMost(agents.lastIndex)]
+        val pane = panes[page.coerceAtMost(panes.lastIndex)]
         val paneId = pane.paneId
         val frames = remember(paneId) { viewModel.frames(paneId) }
         DisposableEffect(paneId) { onDispose { viewModel.onPaneGone(paneId) } }

@@ -66,7 +66,7 @@ internal fun AgentRow(pane: Pane, onOpen: (String) -> Unit) {
 }
 
 @Composable
-internal fun OtherPanes(panes: List<Pane>) {
+internal fun OtherPanes(panes: List<Pane>, onOpen: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Column(
         Modifier
@@ -83,6 +83,10 @@ internal fun OtherPanes(panes: List<Pane>) {
                         stringResource(Res.string.home_other_pane, pane.title),
                         color = HerdrTheme.colors.muted,
                         maxLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpen(pane.paneId) }
+                            .padding(vertical = 10.dp),
                     )
                 }
             }

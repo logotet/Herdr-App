@@ -44,8 +44,8 @@ class TerminalViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun TestScope.viewModel(): TerminalViewModel {
-        val viewModel = TerminalViewModel(session, terminal, FakeSettingsRepository(), testTimeSource)
+    private fun TestScope.viewModel(opened: String = PANE): TerminalViewModel {
+        val viewModel = TerminalViewModel(session, terminal, FakeSettingsRepository(), opened, testTimeSource)
         backgroundScope.launch { viewModel.uiState.collect {} }
         return viewModel
     }
@@ -231,11 +231,48 @@ class TerminalViewModelTest {
         assertEquals(listOf("close $PANE", "open $PANE 45x30"), terminal.calls)
     }
 
-    private fun scrolledBack(lines: Int, pcGrid: GridSize? = GridSize(144, 39)) = Session(
-        agents = listOf(
-            Pane(PANE, "w1", null, "Fix tests", AgentState("claude", AgentStatus.IDLE, null), lines, pcGrid),
-        ),
-    )
+    private fun scrolledBack(lines: Int, pcGrid: GridSize? = GridSize(144, 39)): Session {
+        val pane = Pane(PANE, "w1", null, "Fix tests", AgentState("claude", AgentStatus.IDLE, null), lines, pcGrid)
+        return Session(agents = listOf(pane), panes = listOf(pane))
+    }
+
+    private fun agent(paneId: String, workspaceId: String) =
+        Pane(paneId, workspaceId, null, "agent", AgentState("claude", AgentStatus.IDLE, null))
+
+    private fun shell(paneId: String, workspaceId: String) = Pane(paneId, workspaceId, null, "shell")
+
+    private fun sessionOf(vararg panes: Pane) =
+        Session(agents = panes.filter { it.agent != null }, panes = panes.toList())
+
+    @Test
+    fun openedOnAnAgentItPagesThroughEveryAgent() = runTest(dispatcher) {
+        val viewModel = viewModel(opened = "w1:p1")
+        session.session.value = sessionOf(agent("w1:p1", "w1"), shell("w1:p2", "w1"), agent("w2:p1", "w2"))
+        runCurrent()
+
+        assertEquals(listOf("w1:p1", "w2:p1"), viewModel.uiState.value.panes.map { it.paneId })
+    }
+
+    @Test
+    fun openedOnAnotherPaneItPagesThroughThatWorkspace() = runTest(dispatcher) {
+        val viewModel = viewModel(opened = "w1:p2")
+        session.session.value = sessionOf(agent("w1:p1", "w1"), shell("w1:p2", "w1"), agent("w2:p1", "w2"))
+        runCurrent()
+
+        assertEquals(listOf("w1:p1", "w1:p2"), viewModel.uiState.value.panes.map { it.paneId })
+    }
+
+    @Test
+    fun thePagesStayTheSameWhenThePaneGainsAnAgent() = runTest(dispatcher) {
+        val viewModel = viewModel(opened = "w1:p2")
+        session.session.value = sessionOf(agent("w1:p1", "w1"), shell("w1:p2", "w1"), agent("w2:p1", "w2"))
+        runCurrent()
+
+        session.session.value = sessionOf(agent("w1:p1", "w1"), agent("w1:p2", "w1"), agent("w2:p1", "w2"))
+        runCurrent()
+
+        assertEquals(listOf("w1:p1", "w1:p2"), viewModel.uiState.value.panes.map { it.paneId })
+    }
 
     @Test
     fun jumpToLatestScrollsThePcPaneAndAsksForAFreshSnapshot() = runTest(dispatcher) {

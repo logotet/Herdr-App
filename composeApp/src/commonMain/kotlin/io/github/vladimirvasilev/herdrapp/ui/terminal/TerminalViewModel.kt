@@ -47,12 +47,13 @@ data class PaneUiState(
 )
 
 data class TerminalUiState(
-    val agents: List<Pane> = emptyList(),
+    /** The panes that can be swiped between, in page order. */
+    val panes: List<Pane> = emptyList(),
     val herdrAvailable: Boolean = true,
     val fontSizeSp: Float = 14f,
-    private val panes: Map<String, PaneUiState> = emptyMap(),
+    private val paneStates: Map<String, PaneUiState> = emptyMap(),
 ) {
-    fun pane(paneId: String): PaneUiState = panes[paneId] ?: PaneUiState()
+    fun pane(paneId: String): PaneUiState = paneStates[paneId] ?: PaneUiState()
 }
 
 private const val NOTICE_MILLIS = 2_500L
@@ -65,6 +66,8 @@ internal class TerminalViewModel(
     private val session: SessionRepository,
     private val terminal: TerminalRepository,
     private val settings: SettingsRepository,
+    /** The pane the screen was opened on; it decides which panes can be swiped to. */
+    private val initialPaneId: String,
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) : ViewModel() {
     // Everything below is only touched on the main thread, where viewModelScope runs.
@@ -78,6 +81,9 @@ internal class TerminalViewModel(
     private val resumeControl = mutableSetOf<String>()
     private val noScrollbackAt = mutableMapOf<String, TimeMark>()
     private val noticeJobs = mutableMapOf<String, Job>()
+    private var pagerResolved = false
+    /** Set when the screen was opened on a pane without an agent: swiping stays in its workspace. */
+    private var pagerWorkspaceId: String? = null
 
     val uiState: StateFlow<TerminalUiState> = combine(
         session.session,
@@ -186,12 +192,12 @@ internal class TerminalViewModel(
 
     /** Scrolls a pane that is scrolled back on the PC to its newest output, so it is live again. */
     fun jumpToLatest(paneId: String) {
-        val agent = session.session.value.agents.firstOrNull { it.paneId == paneId } ?: return
-        val pcGrid = agent.pcGrid ?: return
-        if (agent.scrolledBackLines <= 0 || (panes.value[paneId] ?: PaneUiState()).jumping) return
+        val pane = session.session.value.panes.firstOrNull { it.paneId == paneId } ?: return
+        val pcGrid = pane.pcGrid ?: return
+        if (pane.scrolledBackLines <= 0 || (panes.value[paneId] ?: PaneUiState()).jumping) return
         update(paneId) { it.copy(jumping = true) }
         viewModelScope.launch {
-            when (val result = terminal.scrollToLatest(paneId, pcGrid, agent.scrolledBackLines)) {
+            when (val result = terminal.scrollToLatest(paneId, pcGrid, pane.scrolledBackLines)) {
                 // Ask for a fresh snapshot, so the scrolled-back state clears without waiting for a poll.
                 CommandResult.Success -> session.refresh()
                 is CommandResult.Failure -> notify(paneId, PaneNotice.JumpFailed(result.message))
@@ -262,6 +268,21 @@ internal class TerminalViewModel(
         panes.update { it + (paneId to change(it[paneId] ?: PaneUiState())) }
     }
 
+    /**
+     * Opened on an agent: every agent. Opened on any other pane: the panes of its workspace.
+     * Decided once, when the opening pane is first seen, so the pages do not change under the
+     * finger when a pane gains or loses an agent.
+     */
+    private fun pagerPanes(current: Session): List<Pane> {
+        if (!pagerResolved) {
+            val opened = current.panes.firstOrNull { it.paneId == initialPaneId } ?: return current.agents
+            pagerResolved = true
+            pagerWorkspaceId = opened.workspaceId.takeIf { opened.agent == null }
+        }
+        val workspaceId = pagerWorkspaceId ?: return current.agents
+        return current.panes.filter { it.workspaceId == workspaceId }
+    }
+
     private fun toUiState(
         current: Session,
         herdrAvailable: Boolean,
@@ -269,10 +290,10 @@ internal class TerminalViewModel(
         modes: Map<String, StreamMode>,
         local: Map<String, PaneUiState>,
     ) = TerminalUiState(
-        agents = current.agents,
+        panes = pagerPanes(current),
         herdrAvailable = herdrAvailable,
         fontSizeSp = fontSizeSp,
-        panes = (local.keys + modes.keys).associateWith { paneId ->
+        paneStates = (local.keys + modes.keys).associateWith { paneId ->
             (local[paneId] ?: PaneUiState()).copy(controlling = modes[paneId] == StreamMode.CONTROL)
         },
     )

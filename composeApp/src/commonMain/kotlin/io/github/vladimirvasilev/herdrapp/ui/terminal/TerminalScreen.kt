@@ -91,12 +91,15 @@ internal fun TerminalScreen(
             if (state.historyLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
             state.notice?.let { Notice(it.text()) }
         }
-        PromptBar(
-            value = state.draft,
-            onValueChange = actions.onDraftChange,
-            sending = state.sending,
-            onSend = actions.onSubmit,
-        )
+        // Only an agent takes a prompt. Anywhere else the text and its Enter would run as commands.
+        if (pane.agent != null) {
+            PromptBar(
+                value = state.draft,
+                onValueChange = actions.onDraftChange,
+                sending = state.sending,
+                onSend = actions.onSubmit,
+            )
+        }
         ExtraKeysBar(onKey = actions.onKey)
     }
     if (confirmTakeover) {
