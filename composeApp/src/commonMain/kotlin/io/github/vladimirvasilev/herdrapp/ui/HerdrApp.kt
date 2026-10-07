@@ -267,12 +267,16 @@ private fun TerminalPagerScreen(initialPage: Int, store: HerdrStore, connection:
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, (agents.size - 1).coerceAtLeast(0)), pageCount = { agents.size.coerceAtLeast(1) })
     if (agents.isEmpty()) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { TextButton(onClick = onBack) { Text("No agents. Back") } }; return }
     val drafts = remember { mutableStateMapOf<String, TextFieldValue>() }
-    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+    // History is a reading mode: paging is off while the current pane shows it (leave via ↓ Live).
+    val historyOpen = remember { mutableStateMapOf<String, Boolean>() }
+    val currentPaneId = agents.getOrNull(pagerState.currentPage)?.paneId
+    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize(), userScrollEnabled = historyOpen[currentPaneId] != true) { page ->
         val agent = agents[page.coerceAtMost(agents.lastIndex)]
         TerminalScreen(
             agent = agent, store = store, connection = connection, settings = settings, onBack = onBack,
             draft = drafts[agent.paneId] ?: TextFieldValue(""),
             onDraftChange = { drafts[agent.paneId] = it },
+            onHistoryOpenChange = { open -> if (open) historyOpen[agent.paneId] = true else historyOpen.remove(agent.paneId) },
         )
     }
 }
@@ -286,6 +290,7 @@ private fun TerminalScreen(
     onBack: () -> Unit,
     draft: TextFieldValue,
     onDraftChange: (TextFieldValue) -> Unit,
+    onHistoryOpenChange: (Boolean) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val streams by store.streams.collectAsState()
@@ -306,6 +311,7 @@ private fun TerminalScreen(
     var sending by remember(agent.paneId) { mutableStateOf(false) }
 
     LaunchedEffect(notice) { if (notice != null) { delay(2_500); notice = null } }
+    LaunchedEffect(history != null) { onHistoryOpenChange(history != null) }
 
     fun loadHistory() {
         if (history != null || historyLoading) return
@@ -339,7 +345,7 @@ private fun TerminalScreen(
         }
     }
 
-    DisposableEffect(agent.paneId) { onDispose { scope.launch { connection.closeStream(agent.paneId) } } }
+    DisposableEffect(agent.paneId) { onDispose { onHistoryOpenChange(false); scope.launch { connection.closeStream(agent.paneId) } } }
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().background(Color(0xFF181825)).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
