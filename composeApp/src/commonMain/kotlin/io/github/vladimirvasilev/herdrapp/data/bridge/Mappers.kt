@@ -4,8 +4,8 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentInfo
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.BridgeSnapshot
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.PaneInfo
 import io.github.vladimirvasilev.herdrapp.data.bridge.dto.WorkspaceInfo
-import io.github.vladimirvasilev.herdrapp.domain.Agent
 import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
+import io.github.vladimirvasilev.herdrapp.domain.AgentState
 import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.Pane
@@ -22,33 +22,38 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentStatus as AgentSt
 internal fun BridgeSnapshot.toSession(): Session {
     // herdr reports the scroll position on the pane entry only, not on the agent entry.
     val scrollByPane = panes.associate { it.paneId to (it.scroll?.offsetFromBottom ?: 0) }
-    val mapped = agents.map { it.toAgent(previews[it.paneId], scrollByPane[it.paneId] ?: 0, paneSizes[it.paneId]) }
+    val agentPanes = agents.map { it.toPane(previews[it.paneId], scrollByPane[it.paneId] ?: 0, paneSizes[it.paneId]) }
+    val agentByPane = agentPanes.associateBy { it.paneId }
     return Session(
         workspaces = workspaces.map { it.toWorkspace() }.sortedBy { it.number },
-        agents = AgentOrganizer.orderedAgents(mapped, workspaces.map { it.workspaceId }),
-        panes = panes.map { it.toPane() },
+        agents = AgentOrganizer.orderedAgents(agentPanes, workspaces.map { it.workspaceId }),
+        panes = panes.map { agentByPane[it.paneId] ?: it.toPane(paneSizes[it.paneId]) },
     )
 }
 
 private fun WorkspaceInfo.toWorkspace() = Workspace(id = workspaceId, number = number, label = label, paneCount = paneCount)
 
-private fun AgentInfo.toAgent(preview: String?, scrolledBack: Int, pcSize: List<Int>?) = Agent(
+private fun AgentInfo.toPane(preview: String?, scrolledBack: Int, pcSize: List<Int>?) = Pane(
     paneId = paneId,
     workspaceId = workspaceId,
     tabId = tabId,
-    kind = agent,
     title = terminalTitleStripped?.takeIf { it.isNotBlank() } ?: label?.takeIf { it.isNotBlank() } ?: agent ?: paneId,
-    status = agentStatus.toDomain(),
-    preview = preview,
+    agent = AgentState(kind = agent, status = agentStatus.toDomain(), preview = preview),
     scrolledBackLines = scrolledBack.coerceAtLeast(0),
-    pcGrid = pcSize?.takeIf { it.size == 2 && it[0] > 0 && it[1] > 0 }?.let { GridSize(cols = it[0], rows = it[1]) },
+    pcGrid = pcSize.toGridSize(),
 )
 
-private fun PaneInfo.toPane() = Pane(
+private fun PaneInfo.toPane(pcSize: List<Int>?) = Pane(
     paneId = paneId,
     workspaceId = workspaceId,
+    tabId = tabId,
     title = terminalTitleStripped ?: label ?: paneId,
+    scrolledBackLines = (scroll?.offsetFromBottom ?: 0).coerceAtLeast(0),
+    pcGrid = pcSize.toGridSize(),
 )
+
+private fun List<Int>?.toGridSize(): GridSize? =
+    this?.takeIf { it.size == 2 && it[0] > 0 && it[1] > 0 }?.let { GridSize(cols = it[0], rows = it[1]) }
 
 private fun AgentStatusDto.toDomain() = when (this) {
     AgentStatusDto.IDLE -> AgentStatus.IDLE

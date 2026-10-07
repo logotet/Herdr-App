@@ -1,11 +1,12 @@
 package io.github.vladimirvasilev.herdrapp
 
 import androidx.compose.ui.text.input.TextFieldValue
-import io.github.vladimirvasilev.herdrapp.domain.Agent
+import io.github.vladimirvasilev.herdrapp.domain.AgentState
 import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.PaneHistory
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.StreamMode
@@ -231,7 +232,9 @@ class TerminalViewModelTest {
     }
 
     private fun scrolledBack(lines: Int, pcGrid: GridSize? = GridSize(144, 39)) = Session(
-        agents = listOf(Agent(PANE, "w1", null, "claude", "Fix tests", AgentStatus.IDLE, null, lines, pcGrid)),
+        agents = listOf(
+            Pane(PANE, "w1", null, "Fix tests", AgentState("claude", AgentStatus.IDLE, null), lines, pcGrid),
+        ),
     )
 
     @Test

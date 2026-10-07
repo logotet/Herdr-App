@@ -29,28 +29,29 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.domain.Agent
+import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
 import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.ui.components.StatusBadge
 
 @Composable
-internal fun AgentRow(agent: Agent, onOpen: (String) -> Unit) {
+internal fun AgentRow(pane: Pane, onOpen: (String) -> Unit) {
+    val agent = pane.agent
     Card(
-        Modifier.fillMaxWidth().clickable { onOpen(agent.paneId) },
+        Modifier.fillMaxWidth().clickable { onOpen(pane.paneId) },
         colors = CardDefaults.cardColors(containerColor = HerdrTheme.colors.panel),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    agent.kind ?: stringResource(Res.string.home_agent_unknown_kind),
+                    agent?.kind ?: stringResource(Res.string.home_agent_unknown_kind),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(agent.title, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                StatusBadge(agent.status)
+                Text(pane.title, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                StatusBadge(agent?.status ?: AgentStatus.UNKNOWN)
             }
-            val preview = agent.preview
+            val preview = agent?.preview
             if (!preview.isNullOrBlank()) {
                 Text(
                     preview.lines().filter { it.isNotBlank() }.takeLast(3).joinToString("\n"),

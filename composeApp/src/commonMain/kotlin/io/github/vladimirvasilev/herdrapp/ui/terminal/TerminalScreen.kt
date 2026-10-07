@@ -15,7 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
-import io.github.vladimirvasilev.herdrapp.domain.Agent
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.TerminalFrame
 import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner
 import kotlinx.coroutines.flow.Flow
@@ -46,25 +46,25 @@ internal class PaneActions(
 
 @Composable
 internal fun TerminalScreen(
-    agent: Agent,
-    pane: PaneUiState,
+    pane: Pane,
+    state: PaneUiState,
     herdrAvailable: Boolean,
     fontSizeSp: Float,
     frames: Flow<TerminalFrame>,
     actions: PaneActions,
 ) {
-    var confirmTakeover by rememberSaveable(agent.paneId) { mutableStateOf(false) }
+    var confirmTakeover by rememberSaveable(pane.paneId) { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
-        TerminalTopBar(agent = agent, onBack = actions.onBack)
+        TerminalTopBar(pane = pane, onBack = actions.onBack)
         HerdrUnavailableBanner(herdrAvailable)
         Box(Modifier.fillMaxWidth().weight(1f)) {
             TerminalPane(
-                paneId = agent.paneId,
+                paneId = pane.paneId,
                 frames = frames,
-                controlling = pane.controlling,
+                controlling = state.controlling,
                 fontSizeSp = fontSizeSp,
-                history = pane.history,
+                history = state.history,
                 onInput = actions.onInput,
                 onResize = actions.onGridMeasured,
                 onScrollBack = actions.onLoadHistory,
@@ -72,29 +72,29 @@ internal fun TerminalScreen(
                 onFontSizeChanged = actions.onFontSizeChanged,
                 modifier = Modifier.fillMaxSize(),
             )
-            if (pane.history != null) {
+            if (state.history != null) {
                 HistoryOverlay(onLive = actions.onExitHistory)
             } else {
-                if (agent.scrolledBackLines > 0) {
+                if (pane.scrolledBackLines > 0) {
                     ScrolledBackOverlay(
-                        lines = agent.scrolledBackLines,
-                        canJump = agent.pcGrid != null && !pane.jumping,
+                        lines = pane.scrolledBackLines,
+                        canJump = pane.pcGrid != null && !state.jumping,
                         onJump = actions.onJumpToLatest,
                     )
                 }
                 ControlFab(
-                    controlling = pane.controlling,
+                    controlling = state.controlling,
                     onTakeControl = { confirmTakeover = true },
                     onRelease = actions.onReleaseControl,
                 )
             }
-            if (pane.historyLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
-            pane.notice?.let { Notice(it.text()) }
+            if (state.historyLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter))
+            state.notice?.let { Notice(it.text()) }
         }
         PromptBar(
-            value = pane.draft,
+            value = state.draft,
             onValueChange = actions.onDraftChange,
-            sending = pane.sending,
+            sending = state.sending,
             onSend = actions.onSubmit,
         )
         ExtraKeysBar(onKey = actions.onKey)

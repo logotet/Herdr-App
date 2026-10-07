@@ -47,13 +47,13 @@ private fun TerminalPagerScreen(viewModel: TerminalViewModel, initialPaneId: Str
         // History is a reading mode: paging is off while the current pane shows it (leave via ↓ Live).
         userScrollEnabled = currentPaneId == null || state.pane(currentPaneId).history == null,
     ) { page ->
-        val agent = agents[page.coerceAtMost(agents.lastIndex)]
-        val paneId = agent.paneId
+        val pane = agents[page.coerceAtMost(agents.lastIndex)]
+        val paneId = pane.paneId
         val frames = remember(paneId) { viewModel.frames(paneId) }
         DisposableEffect(paneId) { onDispose { viewModel.onPaneGone(paneId) } }
         TerminalScreen(
-            agent = agent,
-            pane = state.pane(paneId),
+            pane = pane,
+            state = state.pane(paneId),
             herdrAvailable = state.herdrAvailable,
             fontSizeSp = state.fontSizeSp,
             frames = frames,

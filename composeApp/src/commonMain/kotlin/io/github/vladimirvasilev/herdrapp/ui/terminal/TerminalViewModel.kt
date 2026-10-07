@@ -3,9 +3,9 @@ package io.github.vladimirvasilev.herdrapp.ui.terminal
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.vladimirvasilev.herdrapp.domain.Agent
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
 import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
@@ -47,7 +47,7 @@ data class PaneUiState(
 )
 
 data class TerminalUiState(
-    val agents: List<Agent> = emptyList(),
+    val agents: List<Pane> = emptyList(),
     val herdrAvailable: Boolean = true,
     val fontSizeSp: Float = 14f,
     private val panes: Map<String, PaneUiState> = emptyMap(),

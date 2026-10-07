@@ -27,11 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.domain.Agent
+import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.ui.components.StatusDot
 
 @Composable
-internal fun TerminalTopBar(agent: Agent, onBack: () -> Unit) {
+internal fun TerminalTopBar(pane: Pane, onBack: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().background(HerdrTheme.colors.panel).padding(end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -42,12 +43,12 @@ internal fun TerminalTopBar(agent: Agent, onBack: () -> Unit) {
                 contentDescription = stringResource(Res.string.terminal_back),
             )
         }
-        StatusDot(agent.status)
+        StatusDot(pane.agent?.status ?: AgentStatus.UNKNOWN)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(agent.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(pane.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                agent.kind ?: agent.paneId,
+                pane.agent?.kind ?: pane.paneId,
                 color = HerdrTheme.colors.muted,
                 style = MaterialTheme.typography.labelSmall,
             )

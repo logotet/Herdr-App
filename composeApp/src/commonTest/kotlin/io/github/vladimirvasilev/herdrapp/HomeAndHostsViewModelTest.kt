@@ -1,7 +1,8 @@
 package io.github.vladimirvasilev.herdrapp
 
-import io.github.vladimirvasilev.herdrapp.domain.Agent
+import io.github.vladimirvasilev.herdrapp.domain.AgentState
 import io.github.vladimirvasilev.herdrapp.domain.AgentStatus
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import io.github.vladimirvasilev.herdrapp.ui.home.HomeViewModel
@@ -55,7 +56,7 @@ class HomeAndHostsViewModelTest {
     fun homeShowsBlockedAgentsAndWorkspaceGroups() = runTest(dispatcher) {
         val viewModel = HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)))
         backgroundScope.launch { viewModel.uiState.collect {} }
-        val blocked = Agent("w1:p1", "w1", null, "claude", "Fix tests", AgentStatus.BLOCKED, null)
+        val blocked = Pane("w1:p1", "w1", null, "Fix tests", AgentState("claude", AgentStatus.BLOCKED, null))
 
         session.session.value = Session(workspaces = listOf(Workspace("w1", 1, "Mobile", 1)), agents = listOf(blocked))
         runCurrent()

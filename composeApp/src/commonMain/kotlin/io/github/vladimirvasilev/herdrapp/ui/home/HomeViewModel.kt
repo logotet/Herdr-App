@@ -2,10 +2,10 @@ package io.github.vladimirvasilev.herdrapp.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.vladimirvasilev.herdrapp.domain.Agent
 import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 import io.github.vladimirvasilev.herdrapp.domain.HostRepository
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
@@ -22,7 +22,7 @@ data class HomeUiState(
     val herdrAvailable: Boolean = true,
     val hasHosts: Boolean = false,
     /** Agents waiting for the user, repeated above the workspace groups. */
-    val needsYou: List<Agent> = emptyList(),
+    val needsYou: List<Pane> = emptyList(),
     val groups: List<WorkspaceGroup> = emptyList(),
 )
 

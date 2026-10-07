@@ -24,15 +24,15 @@ class SessionMappingTest {
     fun blockedAgentsComeFirst() {
         val first = fixture().agents.first()
         assertEquals("w1:p1", first.paneId)
-        assertEquals(AgentStatus.BLOCKED, first.status)
+        assertEquals(AgentStatus.BLOCKED, first.agent?.status)
     }
 
     @Test
     fun agentCarriesItsKindTitleAndPreview() {
-        val agent = fixture().agents.first { it.paneId == "w2:p1" }
-        assertEquals("claude", agent.kind)
-        assertEquals("Implement websocket", agent.title)
-        assertEquals("Running tests", agent.preview)
+        val pane = fixture().agents.first { it.paneId == "w2:p1" }
+        assertEquals("claude", pane.agent?.kind)
+        assertEquals("Implement websocket", pane.title)
+        assertEquals("Running tests", pane.agent?.preview)
     }
 
     @Test
