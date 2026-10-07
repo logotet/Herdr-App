@@ -30,7 +30,7 @@ Use the add-host screen to scan or paste a URI of the form:
 herdr-bridge://pair?host=<host>&port=<port>&token=<token>&name=<display-name>
 ```
 
-Tokens are stored locally and never logged.
+Tokens are stored locally, never logged, and excluded from cloud backup and device-to-device transfer, so a restored phone has to be paired again.
 
 ## Testing on a USB-connected phone (no Tailscale)
 

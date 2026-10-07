@@ -7,6 +7,7 @@
         android:label="Herdr App"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:supportsRtl="true">
         <activity
             android:name=".QrScannerActivity"
