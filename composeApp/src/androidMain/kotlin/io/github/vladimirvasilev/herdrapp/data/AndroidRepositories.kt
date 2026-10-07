@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import io.github.vladimirvasilev.herdrapp.domain.HomeView
 import io.github.vladimirvasilev.herdrapp.domain.HostRepository
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
@@ -21,6 +22,8 @@ import kotlinx.serialization.json.Json
 private val Context.dataStore by preferencesDataStore(name = "herdr_app")
 private val HOSTS = stringPreferencesKey("hosts_json")
 private val FONT_SIZE = floatPreferencesKey("terminal_font_size")
+// Stored as the enum's name; do not rename the constants of HomeView.
+private val HOME_VIEW = stringPreferencesKey("home_view")
 
 /** The stored form of a host. Field names are the on-disk format; do not rename them. */
 @Serializable
@@ -77,5 +80,13 @@ class AndroidSettingsRepository(context: Context, scope: CoroutineScope) : Setti
 
     override suspend fun setTerminalFontSize(sizeSp: Float) {
         appContext.dataStore.edit { it[FONT_SIZE] = sizeSp.coerceIn(8f, 28f) }
+    }
+
+    override val homeView: StateFlow<HomeView> = appContext.dataStore.data
+        .map { prefs -> HomeView.entries.firstOrNull { it.name == prefs[HOME_VIEW] } ?: HomeView.WORKSPACES }
+        .stateIn(scope, SharingStarted.Eagerly, HomeView.WORKSPACES)
+
+    override suspend fun setHomeView(view: HomeView) {
+        appContext.dataStore.edit { it[HOME_VIEW] = view.name }
     }
 }

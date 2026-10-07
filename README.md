@@ -10,6 +10,10 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'; .\gradlew.bat asse
 
 The Android app id is `io.github.vladimirvasilev.herdrapp`; minSdk is 34.
 
+## The list
+
+The switch at the top chooses between **Workspaces** (every pane, by workspace and tab) and **Agents** (only the panes that run an agent, the ones waiting for you first). The app remembers the choice.
+
 ## Changing the layout
 
 On the workspace list, long-press a pane, a tab name or a workspace to rename or close it. Tap **+** on a workspace to add a tab with a shell, and **+** at the top to add a workspace in herdr's default folder. These are herdr's `rename`, `close` and `create` calls for panes, tabs and workspaces. Closing stops the programs on the PC and cannot be undone, so the app asks first.

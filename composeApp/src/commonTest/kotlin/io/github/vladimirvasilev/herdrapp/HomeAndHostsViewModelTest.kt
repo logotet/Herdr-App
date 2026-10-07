@@ -6,6 +6,7 @@ import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
+import io.github.vladimirvasilev.herdrapp.domain.HomeView
 import io.github.vladimirvasilev.herdrapp.ui.home.HomeDialog
 import io.github.vladimirvasilev.herdrapp.ui.home.HomeViewModel
 import kotlinx.coroutines.test.TestScope
@@ -33,6 +34,7 @@ import kotlin.test.assertTrue
 class HomeAndHostsViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val session = FakeSessionRepository()
+    private val settings = FakeSettingsRepository()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -42,7 +44,7 @@ class HomeAndHostsViewModelTest {
 
     @Test
     fun homeConnectsToTheFirstSavedHost() = runTest(dispatcher) {
-        HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)))
+        HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)), settings)
         runCurrent()
 
         assertEquals(listOf(TEST_HOST), session.connected)
@@ -51,7 +53,7 @@ class HomeAndHostsViewModelTest {
     @Test
     fun homeLeavesAnExistingConnectionAlone() = runTest(dispatcher) {
         session.currentHost.value = TEST_HOST
-        HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST.copy(id = "other"))))
+        HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST.copy(id = "other"))), settings)
         runCurrent()
 
         assertTrue(session.connected.isEmpty())
@@ -59,7 +61,7 @@ class HomeAndHostsViewModelTest {
 
     @Test
     fun homeShowsBlockedAgentsAndWorkspaceGroups() = runTest(dispatcher) {
-        val viewModel = HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)))
+        val viewModel = HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)), settings)
         backgroundScope.launch { viewModel.uiState.collect {} }
         val blocked = Pane("w1:p1", "w1", null, "Fix tests", AgentState("claude", AgentStatus.BLOCKED, null))
 
@@ -78,7 +80,7 @@ class HomeAndHostsViewModelTest {
     }
 
     private fun TestScope.home(): HomeViewModel {
-        val viewModel = HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)))
+        val viewModel = HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)), settings)
         backgroundScope.launch { viewModel.uiState.collect {} }
         return viewModel
     }
@@ -114,6 +116,34 @@ class HomeAndHostsViewModelTest {
             session.changes,
         )
         assertNull(viewModel.uiState.value.dialog)
+    }
+
+    @Test
+    fun theViewComesFromTheSettingAndChoosingOneStoresIt() = runTest(dispatcher) {
+        settings.homeView.value = HomeView.AGENTS
+        val viewModel = home()
+        assertEquals(HomeView.AGENTS, viewModel.uiState.value.view)
+
+        viewModel.setView(HomeView.WORKSPACES)
+        runCurrent()
+
+        assertEquals(HomeView.WORKSPACES, settings.homeView.value)
+        assertEquals(HomeView.WORKSPACES, viewModel.uiState.value.view)
+    }
+
+    @Test
+    fun theAgentsViewListsAgentsOnlyInTheSessionOrder() = runTest(dispatcher) {
+        val viewModel = home()
+        val blocked = Pane("w2:p1", "w2", null, "Fix tests", AgentState("claude", AgentStatus.BLOCKED, null))
+        val idle = Pane("w1:p1", "w1", null, "Pull tasks", AgentState("claude", AgentStatus.IDLE, null))
+
+        session.session.value = Session(
+            agents = listOf(blocked, idle),
+            panes = listOf(idle, Pane("w1:p2", "w1", null, "nvim"), blocked),
+        )
+        runCurrent()
+
+        assertEquals(listOf(blocked, idle), viewModel.uiState.value.agents)
     }
 
     @Test

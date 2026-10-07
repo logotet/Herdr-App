@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
 import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
+import io.github.vladimirvasilev.herdrapp.domain.HomeView
 import io.github.vladimirvasilev.herdrapp.domain.HostRepository
 import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
+import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
 import io.github.vladimirvasilev.herdrapp.domain.WorkspaceGroup
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -44,6 +46,9 @@ data class HomeUiState(
     /** Agents waiting for the user, repeated above the workspace groups. */
     val needsYou: List<Pane> = emptyList(),
     val groups: List<WorkspaceGroup> = emptyList(),
+    val view: HomeView = HomeView.WORKSPACES,
+    /** Every agent pane for the agents view, the blocked ones first. */
+    val agents: List<Pane> = emptyList(),
     val dialog: HomeDialog? = null,
     /** Why the last change to the layout did not happen; shown for a moment. */
     val changeFailed: String? = null,
@@ -54,6 +59,7 @@ private const val FAILURE_MILLIS = 4_000L
 class HomeViewModel(
     private val session: SessionRepository,
     private val hosts: HostRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
     private data class Local(val dialog: HomeDialog? = null, val changeFailed: String? = null)
 
@@ -69,6 +75,8 @@ class HomeViewModel(
         ::toUiState,
     ).combine(local) { state, own ->
         state.copy(dialog = own.dialog, changeFailed = own.changeFailed)
+    }.combine(settings.homeView) { state, view ->
+        state.copy(view = view)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -78,7 +86,7 @@ class HomeViewModel(
             session.herdrAvailable.value,
             session.session.value,
             hosts.hosts.value,
-        ),
+        ).copy(view = settings.homeView.value),
     )
 
     init {
@@ -92,6 +100,10 @@ class HomeViewModel(
 
     fun refresh() {
         viewModelScope.launch { session.refresh() }
+    }
+
+    fun setView(view: HomeView) {
+        viewModelScope.launch { settings.setHomeView(view) }
     }
 
     fun showDialog(dialog: HomeDialog) = local.update { it.copy(dialog = dialog) }
@@ -144,5 +156,6 @@ class HomeViewModel(
         hasHosts = saved.isNotEmpty(),
         needsYou = AgentOrganizer.needsYou(current.agents),
         groups = AgentOrganizer.groups(current),
+        agents = current.agents,
     )
 }

@@ -4,6 +4,7 @@ import io.github.vladimirvasilev.herdrapp.domain.CommandResult
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 import io.github.vladimirvasilev.herdrapp.domain.GridSize
 import io.github.vladimirvasilev.herdrapp.domain.HistoryResult
+import io.github.vladimirvasilev.herdrapp.domain.HomeView
 import io.github.vladimirvasilev.herdrapp.domain.HostRepository
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.Session
@@ -77,6 +78,12 @@ class FakeSettingsRepository : SettingsRepository {
 
     override suspend fun setTerminalFontSize(sizeSp: Float) {
         terminalFontSize.value = sizeSp
+    }
+
+    override val homeView = MutableStateFlow(HomeView.WORKSPACES)
+
+    override suspend fun setHomeView(view: HomeView) {
+        homeView.value = view
     }
 }
 

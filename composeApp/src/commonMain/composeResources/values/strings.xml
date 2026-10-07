@@ -11,7 +11,9 @@
     <string name="herdr_unavailable_bridge_ok">Bridge connected</string>
 
     <!-- Agent list -->
-    <string name="home_title">Workspaces</string>
+    <string name="home_view_workspaces">Workspaces</string>
+    <string name="home_view_agents">Agents</string>
+    <string name="home_no_agents">No agents are running.</string>
     <string name="home_refresh_hint">Pull down to refresh</string>
     <string name="home_needs_you">Needs you</string>
     <string name="home_workspace">%1$d. %2$s (%3$d)</string>
