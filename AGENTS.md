@@ -19,7 +19,7 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'; .\gradlew.bat asse
 
 ## Architecture
 
-Dependencies point one way: `ui` -> `domain` -> `data`. Nothing points back.
+`ui` and `data` both depend on `domain`. `domain` depends on neither, and `ui` never imports `data`.
 
 - `data/`: the bridge connection, protocol DTOs (`@Serializable`), DataStore. DTOs never leave
   this layer; map them to domain models at the repository boundary.
@@ -29,8 +29,9 @@ Dependencies point one way: `ui` -> `domain` -> `data`. Nothing points back.
   `XScreen.kt`, `XViewModel.kt` and `XUiState.kt`.
 - Wiring lives in `HerdrApplication`. Pass dependencies through constructors.
 
-Known debt, to be migrated rather than extended: `ui/HerdrApp.kt` holds every screen and calls
-`BridgeConnection` directly, and `BridgeConnection` writes into `HerdrStore`.
+Known debt, to be migrated rather than extended: composables still receive repositories and
+start their calls from `rememberCoroutineScope`, and navigation is a plain `remember` in
+`ui/HerdrApp.kt`.
 
 ## UI rules
 
@@ -48,7 +49,10 @@ Known debt, to be migrated rather than extended: `ui/HerdrApp.kt` holds every sc
 
 - JSON parsing and Base64 decoding run off the main thread.
 - Mutable state shared between coroutines is confined to one dispatcher or guarded by a `Mutex`.
-- Never drop terminal frames silently. Check `seq`; on a gap, request a full frame.
+  Everything that touches the socket runs on the single-threaded bridge dispatcher.
+- A `BridgeListener` runs inside the loop that reads the socket. It must never wait for the
+  result of a request, or the result can never be read.
+- Never drop terminal frames: no lossy buffer between the socket and the emulator.
 - Always rethrow `CancellationException`.
 
 ## Kotlin Multiplatform
