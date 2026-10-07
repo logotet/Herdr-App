@@ -60,9 +60,43 @@ class TerminalViewModelTest {
 
         viewModel.onGridMeasured(PANE, 45, 30)
         viewModel.onGridMeasured(PANE, 45, 20)
-        runCurrent()
+        advanceTimeBy(301)
 
         assertEquals(listOf("open $PANE 45x30", "resize $PANE 45x20"), terminal.calls)
+    }
+
+    @Test
+    fun aBurstOfGridChangesSendsOneResizeOnceItSettles() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.onGridMeasured(PANE, 77, 53)
+        runCurrent()
+        terminal.calls.clear()
+
+        // The keyboard sliding in: one report per animation step.
+        listOf(50, 31, 24, 23, 22).forEach { rows ->
+            viewModel.onGridMeasured(PANE, 77, rows)
+            advanceTimeBy(50)
+        }
+        assertTrue(terminal.calls.isEmpty())
+
+        advanceTimeBy(301)
+        assertEquals(listOf("resize $PANE 77x22"), terminal.calls)
+    }
+
+    @Test
+    fun aGridThatReturnsToTheSizeAlreadySentSendsNothing() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.onGridMeasured(PANE, 77, 53)
+        runCurrent()
+        terminal.calls.clear()
+
+        listOf(30, 22, 30, 53).forEach { rows ->
+            viewModel.onGridMeasured(PANE, 77, rows)
+            advanceTimeBy(50)
+        }
+        advanceTimeBy(301)
+
+        assertTrue(terminal.calls.isEmpty())
     }
 
     @Test
@@ -158,11 +192,12 @@ class TerminalViewModelTest {
     fun takingControlUsesTheMeasuredGrid() = runTest(dispatcher) {
         val viewModel = viewModel()
         viewModel.onGridMeasured(PANE, 45, 30)
+        viewModel.onGridMeasured(PANE, 45, 28)
 
         viewModel.takeControl(PANE)
-        runCurrent()
+        advanceTimeBy(301)
 
-        assertEquals("takeControl $PANE 45x30", terminal.calls.last())
+        assertEquals(listOf("open $PANE 45x30", "takeControl $PANE 45x28"), terminal.calls)
     }
 
     private fun scrolledBack(lines: Int, pcGrid: GridSize? = GridSize(144, 39)) = Session(

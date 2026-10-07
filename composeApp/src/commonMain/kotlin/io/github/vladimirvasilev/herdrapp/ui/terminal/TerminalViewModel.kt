@@ -56,6 +56,7 @@ data class TerminalUiState(
 }
 
 private const val NOTICE_MILLIS = 2_500L
+private const val RESIZE_SETTLE_MILLIS = 300L
 private val NO_SCROLLBACK_COOLDOWN = 5.seconds
 private val DEFAULT_GRID = 80 to 24
 
@@ -69,6 +70,9 @@ internal class TerminalViewModel(
     // Everything below is only touched on the main thread, where viewModelScope runs.
     private val panes = MutableStateFlow<Map<String, PaneUiState>>(emptyMap())
     private val grids = mutableMapOf<String, Pair<Int, Int>>()
+    /** The grid each pane's stream was last opened or resized to. */
+    private val sentGrids = mutableMapOf<String, Pair<Int, Int>>()
+    private val resizeJobs = mutableMapOf<String, Job>()
     private val openStreams = mutableSetOf<String>()
     private val noScrollbackAt = mutableMapOf<String, TimeMark>()
     private val noticeJobs = mutableMapOf<String, Job>()
@@ -97,11 +101,26 @@ internal class TerminalViewModel(
     /**
      * The pane's view reports its grid. The stream opens on the first report; later ones only
      * resize it, because re-opening would restart observe mode and drop control.
+     *
+     * A resize is sent once the grid has stopped changing. The keyboard sliding in or out reports
+     * a new grid for every step of its animation, and in control mode each one would resize the
+     * real pane on the PC, where every resize makes the program in it redraw.
      */
     fun onGridMeasured(paneId: String, cols: Int, rows: Int) {
-        grids[paneId] = cols to rows
-        viewModelScope.launch {
-            if (openStreams.add(paneId)) terminal.open(paneId, cols, rows) else terminal.resize(paneId, cols, rows)
+        val grid = cols to rows
+        grids[paneId] = grid
+        if (openStreams.add(paneId)) {
+            sentGrids[paneId] = grid
+            viewModelScope.launch { terminal.open(paneId, cols, rows) }
+            return
+        }
+        resizeJobs.remove(paneId)?.cancel()
+        resizeJobs[paneId] = viewModelScope.launch {
+            delay(RESIZE_SETTLE_MILLIS)
+            // Back at the size the PC already has, for example the keyboard opened and closed again.
+            if (sentGrids[paneId] == grid) return@launch
+            sentGrids[paneId] = grid
+            terminal.resize(paneId, cols, rows)
         }
     }
 
@@ -110,6 +129,8 @@ internal class TerminalViewModel(
         terminal.close(paneId)
         openStreams -= paneId
         grids -= paneId
+        sentGrids -= paneId
+        resizeJobs.remove(paneId)?.cancel()
         noScrollbackAt -= paneId
         noticeJobs.remove(paneId)?.cancel()
         update(paneId) { PaneUiState(draft = it.draft) }
@@ -190,8 +211,11 @@ internal class TerminalViewModel(
     }
 
     fun takeControl(paneId: String) {
-        val (cols, rows) = grids[paneId] ?: DEFAULT_GRID
-        viewModelScope.launch { terminal.takeControl(paneId, cols, rows) }
+        val grid = grids[paneId] ?: DEFAULT_GRID
+        // Control starts at the current grid, so a resize still waiting to be sent is not needed.
+        resizeJobs.remove(paneId)?.cancel()
+        sentGrids[paneId] = grid
+        viewModelScope.launch { terminal.takeControl(paneId, grid.first, grid.second) }
     }
 
     fun releaseControl(paneId: String) {
