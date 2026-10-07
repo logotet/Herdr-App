@@ -30,7 +30,6 @@ data class HerdrStatusMessage(
 data class BridgeSnapshot(
     val type: String = "snapshot",
     val workspaces: List<WorkspaceInfo> = emptyList(),
-    val tabs: List<TabInfo> = emptyList(),
     val panes: List<PaneInfo> = emptyList(),
     val agents: List<AgentInfo> = emptyList(),
     @SerialName("focused_workspace_id") val focusedWorkspaceId: String? = null,
@@ -49,17 +48,6 @@ data class WorkspaceInfo(
     @SerialName("pane_count") val paneCount: Int = 0,
     @SerialName("tab_count") val tabCount: Int = 0,
     @SerialName("active_tab_id") val activeTabId: String? = null
-)
-
-@Serializable
-data class TabInfo(
-    @SerialName("tab_id") val tabId: String,
-    @SerialName("workspace_id") val workspaceId: String,
-    val number: Int = 0,
-    val label: String = "",
-    @SerialName("agent_status") val agentStatus: AgentStatus = AgentStatus.UNKNOWN,
-    val focused: Boolean = false,
-    @SerialName("pane_count") val paneCount: Int = 0
 )
 
 @Serializable
@@ -116,18 +104,6 @@ enum class AgentStatus {
 }
 
 @Serializable
-data class AgentStatusTransition(
-    val type: String = "agent_status",
-    @SerialName("pane_id") val paneId: String,
-    @SerialName("workspace_id") val workspaceId: String,
-    val agent: String? = null,
-    val from: AgentStatus = AgentStatus.UNKNOWN,
-    val to: AgentStatus = AgentStatus.UNKNOWN,
-    val title: String? = null,
-    @SerialName("workspace_label") val workspaceLabel: String? = null
-)
-
-@Serializable
 data class TerminalFrame(
     val type: String = "frame",
     @SerialName("pane_id") val paneId: String,
@@ -166,19 +142,6 @@ data class BridgeResultMessage(
 data class BridgeError(val code: String, val message: String? = null)
 
 @Serializable
-data class PaneReadResult(
-    val type: String = "pane_read",
-    val read: PaneReadPayload
-)
-
-@Serializable
-data class PaneReadPayload(
-    val text: String,
-    @SerialName("pane_id") val paneId: String,
-    val truncated: Boolean = false
-)
-
-@Serializable
 data class RefreshRequest(val type: String = "refresh", val id: String? = null)
 @Serializable
 data class OpenStreamRequest(val type: String = "open_stream", val id: String? = null, @SerialName("pane_id") val paneId: String, val cols: Int, val rows: Int)
@@ -198,7 +161,6 @@ data class CallRequest(val type: String = "call", val id: String? = null, val me
 sealed interface ServerMessage {
     data class Hello(val value: BridgeHello) : ServerMessage
     data class Snapshot(val value: BridgeSnapshot) : ServerMessage
-    data class AgentStatus(val value: AgentStatusTransition) : ServerMessage
     data class Frame(val value: TerminalFrame) : ServerMessage
     data class Stream(val value: StreamState) : ServerMessage
     data class HerdrStatus(val value: HerdrStatusMessage) : ServerMessage

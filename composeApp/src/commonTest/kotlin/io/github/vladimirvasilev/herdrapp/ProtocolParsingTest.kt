@@ -9,7 +9,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ProtocolParsingTest {
-    @Test fun parsesHelloSnapshotFrameResultAgentStatusAndStream() {
+    @Test fun parsesHelloSnapshotFrameResultAndStream() {
         val hello = assertIs<ServerMessage.Hello>(BridgeJson.parse("""{"type":"hello","protocol":1,"bridge_version":"0.1.0","name":"WORK-PC","herdr":{"version":"0.8","protocol":19,"available":true}}"""))
         assertEquals("WORK-PC", hello.value.name)
 
@@ -25,9 +25,6 @@ class ProtocolParsingTest {
 
         val result = assertIs<ServerMessage.Result>(BridgeJson.parse("""{"type":"result","id":"r1","ok":false,"error":{"code":"pane_not_found","message":"missing"}}""")).value
         assertEquals("pane_not_found", result.error?.code)
-
-        val transition = assertIs<ServerMessage.AgentStatus>(BridgeJson.parse("""{"type":"agent_status","pane_id":"w1:p1","workspace_id":"w1","agent":"copilot","from":"working","to":"blocked","title":"Fix tests","workspace_label":"Mobile"}""")).value
-        assertEquals(AgentStatus.BLOCKED, transition.to)
 
         val stream = assertIs<ServerMessage.Stream>(BridgeJson.parse("""{"type":"stream","pane_id":"w1:p1","mode":"observe","reason":"detached"}""")).value
         assertEquals(StreamMode.OBSERVE, stream.mode)

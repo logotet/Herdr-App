@@ -19,7 +19,6 @@ object BridgeJson {
         return when (val type = obj["type"]?.jsonPrimitive?.content ?: "") {
             "hello" -> ServerMessage.Hello(json.decodeFromJsonElement(element))
             "snapshot" -> ServerMessage.Snapshot(json.decodeFromJsonElement(element))
-            "agent_status" -> ServerMessage.AgentStatus(json.decodeFromJsonElement(element))
             "frame" -> ServerMessage.Frame(json.decodeFromJsonElement(element))
             "stream" -> ServerMessage.Stream(json.decodeFromJsonElement(element))
             "herdr_status" -> ServerMessage.HerdrStatus(json.decodeFromJsonElement(element))

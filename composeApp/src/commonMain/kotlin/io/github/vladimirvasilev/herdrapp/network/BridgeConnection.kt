@@ -79,7 +79,6 @@ class BridgeConnection(
                 store.setHerdrStatus(message.value.herdr)
             }
             is ServerMessage.Snapshot -> store.replace(message.value)
-            is ServerMessage.AgentStatus -> store.onAgentStatus(message.value)
             is ServerMessage.Frame -> store.onFrame(message.value)
             is ServerMessage.Stream -> store.onStream(message.value)
             is ServerMessage.HerdrStatus -> store.setHerdrStatus(message.value.toInfo())
