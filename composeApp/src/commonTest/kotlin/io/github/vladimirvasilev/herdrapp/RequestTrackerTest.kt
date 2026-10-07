@@ -4,7 +4,6 @@ import io.github.vladimirvasilev.herdrapp.network.RequestOutcome
 import io.github.vladimirvasilev.herdrapp.network.RequestTracker
 import io.github.vladimirvasilev.herdrapp.protocol.BridgeError
 import io.github.vladimirvasilev.herdrapp.protocol.BridgeResultMessage
-import io.github.vladimirvasilev.herdrapp.protocol.PongMessage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -17,14 +16,6 @@ class RequestTrackerTest {
         tracker.register("r1")
         val wait = async { tracker.await("r1", 1_000) }
         tracker.complete(BridgeResultMessage(id = "r1", ok = true))
-        assertIs<RequestOutcome.Success>(wait.await())
-    }
-
-    @Test fun correlatesPongAsPingResultReplacement() = runTest {
-        val tracker = RequestTracker()
-        tracker.register("p1")
-        val wait = async { tracker.await("p1", 1_000) }
-        tracker.complete(PongMessage(id = "p1"))
         assertIs<RequestOutcome.Success>(wait.await())
     }
 

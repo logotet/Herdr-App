@@ -166,9 +166,6 @@ data class BridgeResultMessage(
 data class BridgeError(val code: String, val message: String? = null)
 
 @Serializable
-data class PongMessage(val type: String = "pong", val id: String? = null)
-
-@Serializable
 data class PaneReadResult(
     val type: String = "pane_read",
     val read: PaneReadPayload
@@ -182,8 +179,6 @@ data class PaneReadPayload(
 )
 
 @Serializable
-data class PingRequest(val type: String = "ping", val id: String? = null)
-@Serializable
 data class RefreshRequest(val type: String = "refresh", val id: String? = null)
 @Serializable
 data class OpenStreamRequest(val type: String = "open_stream", val id: String? = null, @SerialName("pane_id") val paneId: String, val cols: Int, val rows: Int)
@@ -194,18 +189,11 @@ data class TakeControlRequest(val type: String = "take_control", val id: String?
 @Serializable
 data class ReleaseControlRequest(val type: String = "release_control", val id: String? = null, @SerialName("pane_id") val paneId: String)
 @Serializable
-data class InputRequest(val type: String = "input", val id: String? = null, @SerialName("pane_id") val paneId: String, val text: String? = null, val bytes: String? = null)
+data class InputRequest(val type: String = "input", val id: String? = null, @SerialName("pane_id") val paneId: String, val bytes: String)
 @Serializable
 data class ResizeRequest(val type: String = "resize", val id: String? = null, @SerialName("pane_id") val paneId: String, val cols: Int, val rows: Int)
 @Serializable
-data class ScrollRequest(val type: String = "scroll", val id: String? = null, @SerialName("pane_id") val paneId: String, val direction: ScrollDirection, val lines: Int)
-@Serializable
 data class CallRequest(val type: String = "call", val id: String? = null, val method: String, val params: JsonElement)
-@Serializable
-data class DiffRequest(val type: String = "diff", val id: String? = null, @SerialName("pane_id") val paneId: String, val staged: Boolean? = null, val path: String? = null)
-
-@Serializable
-enum class ScrollDirection { @SerialName("up") UP, @SerialName("down") DOWN }
 
 sealed interface ServerMessage {
     data class Hello(val value: BridgeHello) : ServerMessage
@@ -215,6 +203,5 @@ sealed interface ServerMessage {
     data class Stream(val value: StreamState) : ServerMessage
     data class HerdrStatus(val value: HerdrStatusMessage) : ServerMessage
     data class Result(val value: BridgeResultMessage) : ServerMessage
-    data class Pong(val value: PongMessage) : ServerMessage
     data class Unknown(val type: String, val raw: JsonElement) : ServerMessage
 }

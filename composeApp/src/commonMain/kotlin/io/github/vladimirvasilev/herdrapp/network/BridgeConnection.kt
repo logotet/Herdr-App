@@ -45,13 +45,6 @@ class BridgeConnection(
         }
     }
 
-    fun disconnect() {
-        job?.cancel()
-        session = null
-        tracker.failAll(BridgeError("disconnected", "Disconnected"))
-        store.setConnectionState(ConnectionState.Disconnected)
-    }
-
     private suspend fun loop(host: SavedHost) {
         var delayMs = 1_000L
         while (currentCoroutineContext().isActive) {
@@ -91,13 +84,11 @@ class BridgeConnection(
             is ServerMessage.Stream -> store.onStream(message.value)
             is ServerMessage.HerdrStatus -> store.setHerdrStatus(message.value.toInfo())
             is ServerMessage.Result -> tracker.complete(message.value)
-            is ServerMessage.Pong -> tracker.complete(message.value)
             is ServerMessage.Unknown -> Unit
         }
     }
 
     suspend fun refresh(): RequestOutcome = request { id -> BridgeJson.encode(RefreshRequest(id = id)) }
-    suspend fun ping(): RequestOutcome = request { id -> BridgeJson.encode(PingRequest(id = id)) }
 
     suspend fun openStream(paneId: String, cols: Int, rows: Int): RequestOutcome {
         activeStreams[paneId] = cols to rows
@@ -119,15 +110,10 @@ class BridgeConnection(
         BridgeJson.encode(InputRequest(id = id, paneId = paneId, bytes = Base64.Default.encode(bytes)))
     }
 
-    suspend fun inputText(paneId: String, text: String): RequestOutcome = request { id -> BridgeJson.encode(InputRequest(id = id, paneId = paneId, text = text)) }
-
     suspend fun resize(paneId: String, cols: Int, rows: Int): RequestOutcome {
         activeStreams[paneId] = cols to rows
         return request { id -> BridgeJson.encode(ResizeRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
     }
-
-    suspend fun scroll(paneId: String, direction: ScrollDirection, lines: Int): RequestOutcome =
-        request { id -> BridgeJson.encode(ScrollRequest(id = id, paneId = paneId, direction = direction, lines = lines)) }
 
     suspend fun sendKeys(paneId: String, keys: List<String>): RequestOutcome {
         val params = buildJsonObject {

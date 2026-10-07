@@ -2,7 +2,6 @@ package io.github.vladimirvasilev.herdrapp.network
 
 import io.github.vladimirvasilev.herdrapp.protocol.BridgeError
 import io.github.vladimirvasilev.herdrapp.protocol.BridgeResultMessage
-import io.github.vladimirvasilev.herdrapp.protocol.PongMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
@@ -35,12 +34,6 @@ class RequestTracker {
         val deferred = synchronized(pending) { pending[result.id] } ?: return
         if (result.ok) deferred.complete(RequestOutcome.Success(result.data))
         else deferred.complete(RequestOutcome.Failure(result.error ?: BridgeError("unknown", null)))
-    }
-
-    fun complete(pong: PongMessage) {
-        val id = pong.id ?: return
-        val deferred = synchronized(pending) { pending[id] } ?: return
-        deferred.complete(RequestOutcome.Success(null))
     }
 
     fun failAll(error: BridgeError) {

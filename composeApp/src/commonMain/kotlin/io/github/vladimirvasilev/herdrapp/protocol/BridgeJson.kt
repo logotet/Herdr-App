@@ -24,7 +24,6 @@ object BridgeJson {
             "stream" -> ServerMessage.Stream(json.decodeFromJsonElement(element))
             "herdr_status" -> ServerMessage.HerdrStatus(json.decodeFromJsonElement(element))
             "result" -> ServerMessage.Result(json.decodeFromJsonElement(element))
-            "pong" -> ServerMessage.Pong(json.decodeFromJsonElement(element))
             else -> ServerMessage.Unknown(type, element)
         }
     }
