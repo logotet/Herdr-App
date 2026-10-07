@@ -13,14 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 
 @Composable
-internal fun ConnectionBanner(state: ConnectionState, host: SavedHost?, onHosts: () -> Unit) {
+internal fun ConnectionBanner(state: ConnectionState, hostName: String?, onHosts: () -> Unit) {
     val text = when (state) {
         ConnectionState.Disconnected -> "Disconnected"
-        ConnectionState.Connecting -> "Connecting to ${host?.name ?: "host"}?"
+        ConnectionState.Connecting -> "Connecting to ${hostName ?: "host"}?"
         is ConnectionState.Connected -> "Connected to ${state.bridgeName}"
         is ConnectionState.Error -> "Connection error: ${state.message}"
     }

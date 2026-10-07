@@ -18,7 +18,7 @@ The Android app id is `io.github.vladimirvasilev.herdrapp`; minSdk is 34.
 
 ## Module layout
 
-- `composeApp`: Kotlin Multiplatform app module with Android target, shared protocol models, bridge connection/state, host pairing, ViewModels/state holders, and Compose UI.
+- `composeApp`: Kotlin Multiplatform app module with an Android target. `domain` holds the models and repository interfaces, `data` the bridge connection and storage, and `ui` one package per screen with a ViewModel each. `AGENTS.md` has the rules.
 - `terminal-emulator`: the Termux VT emulator (Apache-2.0, vendored), with `TerminalSession` rewritten to be fed by herdr frames from the bridge instead of a local PTY.
 - `terminal-view`: the Termux `TerminalView` Android `View` (Apache-2.0, vendored), hosted in Compose via `AndroidView` in `TerminalPane.android.kt`.
 

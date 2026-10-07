@@ -7,10 +7,6 @@ import io.github.vladimirvasilev.herdrapp.data.BridgeSessionRepository
 import io.github.vladimirvasilev.herdrapp.data.BridgeTerminalRepository
 import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
 import io.github.vladimirvasilev.herdrapp.data.bridge.KtorBridgeSocketFactory
-import io.github.vladimirvasilev.herdrapp.domain.HostRepository
-import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
-import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
-import io.github.vladimirvasilev.herdrapp.domain.TerminalRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.WebSockets
@@ -37,10 +33,17 @@ class HerdrApplication : Application() {
     )
 
     // Both repositories listen to the connection, so they exist before anything can connect.
-    val sessionRepository: SessionRepository = BridgeSessionRepository(connection).also(connection::addListener)
-    val terminalRepository: TerminalRepository =
+    private val sessionRepository = BridgeSessionRepository(connection).also(connection::addListener)
+    private val terminalRepository =
         BridgeTerminalRepository(connection, appScope, bridgeDispatcher).also(connection::addListener)
 
-    val hosts: HostRepository by lazy { AndroidHostRepository(this, appScope) }
-    val settings: SettingsRepository by lazy { AndroidSettingsRepository(this, appScope) }
+    // Lazy because the storage repositories need the application context.
+    val container: AppContainer by lazy {
+        AppContainer(
+            session = sessionRepository,
+            terminal = terminalRepository,
+            hosts = AndroidHostRepository(this, appScope),
+            settings = AndroidSettingsRepository(this, appScope),
+        )
+    }
 }

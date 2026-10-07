@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             CompositionLocalProvider(LocalQrScannerService provides scanner) {
-                HerdrApp(app.sessionRepository, app.terminalRepository, app.hosts, app.settings)
+                HerdrApp(app.container)
             }
         }
     }

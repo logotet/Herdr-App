@@ -1,0 +1,94 @@
+package io.github.vladimirvasilev.herdrapp.ui.hosts
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import io.github.vladimirvasilev.herdrapp.domain.HostRepository
+import io.github.vladimirvasilev.herdrapp.domain.PairUriParser
+import io.github.vladimirvasilev.herdrapp.domain.SavedHost
+import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+data class HostForm(
+    val name: String = "",
+    val host: String = "",
+    val port: String = DEFAULT_PORT.toString(),
+    val token: String = "",
+    val error: String? = null,
+)
+
+data class HostsUiState(
+    val hosts: List<SavedHost> = emptyList(),
+    val form: HostForm = HostForm(),
+)
+
+private const val DEFAULT_PORT = 8787
+
+class HostsViewModel(
+    private val hosts: HostRepository,
+    private val session: SessionRepository,
+) : ViewModel() {
+    private val form = MutableStateFlow(HostForm())
+
+    val uiState: StateFlow<HostsUiState> = combine(hosts.hosts, form, ::HostsUiState).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = HostsUiState(hosts.hosts.value, form.value),
+    )
+
+    fun onNameChange(value: String) = form.update { it.copy(name = value) }
+    fun onHostChange(value: String) = form.update { it.copy(host = value) }
+    fun onPortChange(value: String) = form.update { it.copy(port = value) }
+    fun onTokenChange(value: String) = form.update { it.copy(token = value) }
+
+    fun select(host: SavedHost) = session.connect(host)
+
+    fun delete(host: SavedHost) {
+        viewModelScope.launch { hosts.delete(host.id) }
+    }
+
+    /** Saves the typed host and connects to it. False when the form is incomplete. */
+    fun saveForm(): Boolean {
+        val current = form.value
+        if (current.host.isBlank() || current.token.isBlank()) {
+            form.update { it.copy(error = "Host and token are required") }
+            return false
+        }
+        val port = current.port.toIntOrNull() ?: DEFAULT_PORT
+        save(
+            SavedHost(
+                id = "manual-${current.host.hashCode()}-$port",
+                name = current.name.ifBlank { current.host },
+                host = current.host,
+                port = port,
+                token = current.token,
+            )
+        )
+        return true
+    }
+
+    /** Saves the host from a scanned pairing code. False when the scan was cancelled or invalid. */
+    fun onScanned(raw: String?): Boolean {
+        if (raw == null) return false
+        val host = PairUriParser.parse(raw)
+        if (host == null) {
+            form.update { it.copy(error = "Invalid QR") }
+            return false
+        }
+        save(host)
+        return true
+    }
+
+    private fun save(host: SavedHost) {
+        form.value = HostForm()
+        viewModelScope.launch {
+            hosts.upsert(host)
+            session.connect(host)
+        }
+    }
+}

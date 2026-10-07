@@ -14,40 +14,40 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.github.vladimirvasilev.herdrapp.domain.SavedHost
-import io.github.vladimirvasilev.herdrapp.domain.AgentOrganizer
-import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.vladimirvasilev.herdrapp.AppContainer
 import io.github.vladimirvasilev.herdrapp.domain.Workspace
 import io.github.vladimirvasilev.herdrapp.ui.components.ConnectionBanner
 import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner
 
 @Composable
+internal fun HomeRoute(container: AppContainer, onOpen: (paneId: String) -> Unit, onHosts: () -> Unit) {
+    val viewModel = viewModel { HomeViewModel(container.session, container.hosts) }
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    HomeScreen(state = state, onOpen = onOpen, onHosts = onHosts, onRefresh = viewModel::refresh)
+}
+
+@Composable
 internal fun HomeScreen(
-    session: SessionRepository,
-    hostList: List<SavedHost>,
-    onOpen: (String) -> Unit,
+    state: HomeUiState,
+    onOpen: (paneId: String) -> Unit,
     onHosts: () -> Unit,
     onRefresh: () -> Unit,
 ) {
-    val state by session.connectionState.collectAsState()
-    val current by session.session.collectAsState()
-    val currentHost by session.currentHost.collectAsState()
-    val herdrAvailable by session.herdrAvailable.collectAsState()
-    val groups = remember(current) { AgentOrganizer.groups(current) }
-    val needsYou = remember(current) { AgentOrganizer.needsYou(current.agents) }
+    val currentOnRefresh by rememberUpdatedState(onRefresh)
     Column(Modifier.fillMaxSize()) {
-        ConnectionBanner(state, currentHost, onHosts)
-        HerdrUnavailableBanner(herdrAvailable)
-        if (hostList.isEmpty()) {
+        ConnectionBanner(state.connection, state.hostName, onHosts)
+        HerdrUnavailableBanner(state.herdrAvailable)
+        if (!state.hasHosts) {
             EmptyHosts(onHosts)
             return@Column
         }
@@ -56,7 +56,7 @@ internal fun HomeScreen(
                 var drag = 0f
                 detectDragGestures(
                     onDragEnd = {
-                        if (drag > 120f) onRefresh()
+                        if (drag > 120f) currentOnRefresh()
                         drag = 0f
                     },
                 ) { change, amount ->
@@ -68,11 +68,11 @@ internal fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item { HeaderRow("Agents", "Pull down to refresh") }
-            if (needsYou.isNotEmpty()) {
+            if (state.needsYou.isNotEmpty()) {
                 item { SectionTitle("Needs you") }
-                items(needsYou, key = { "needs-${it.paneId}" }) { AgentRow(it, onOpen) }
+                items(state.needsYou, key = { "needs-${it.paneId}" }) { AgentRow(it, onOpen) }
             }
-            groups.forEach { group ->
+            state.groups.forEach { group ->
                 item { WorkspaceHeader(group.workspace) }
                 items(group.agents, key = { it.paneId }) { AgentRow(it, onOpen) }
                 if (group.otherPanes.isNotEmpty()) item { OtherPanes(group.otherPanes) }

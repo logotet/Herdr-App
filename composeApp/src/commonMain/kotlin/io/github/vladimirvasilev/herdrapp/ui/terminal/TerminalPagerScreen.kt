@@ -7,30 +7,27 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.TextFieldValue
-import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
-import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
-import io.github.vladimirvasilev.herdrapp.domain.TerminalRepository
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.vladimirvasilev.herdrapp.AppContainer
 
 @Composable
-internal fun TerminalPagerScreen(
-    initialPage: Int,
-    session: SessionRepository,
-    terminal: TerminalRepository,
-    settings: SettingsRepository,
-    onBack: () -> Unit,
-) {
-    val current by session.session.collectAsState()
-    val herdrAvailable by session.herdrAvailable.collectAsState()
-    val agents = current.agents
+internal fun TerminalRoute(container: AppContainer, initialPaneId: String, onBack: () -> Unit) {
+    val viewModel = viewModel { TerminalViewModel(container.session, container.terminal, container.settings) }
+    TerminalPagerScreen(viewModel, initialPaneId, onBack)
+}
+
+@Composable
+private fun TerminalPagerScreen(viewModel: TerminalViewModel, initialPaneId: String, onBack: () -> Unit) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val agents = state.agents
     val pagerState = rememberPagerState(
-        initialPage = initialPage.coerceIn(0, (agents.size - 1).coerceAtLeast(0)),
+        initialPage = agents.indexOfFirst { it.paneId == initialPaneId }.coerceAtLeast(0),
         pageCount = { agents.size.coerceAtLeast(1) },
     )
     if (agents.isEmpty()) {
@@ -39,27 +36,38 @@ internal fun TerminalPagerScreen(
         }
         return
     }
-    val drafts = remember { mutableStateMapOf<String, TextFieldValue>() }
-    // History is a reading mode: paging is off while the current pane shows it (leave via ↓ Live).
-    val historyOpen = remember { mutableStateMapOf<String, Boolean>() }
     val currentPaneId = agents.getOrNull(pagerState.currentPage)?.paneId
     HorizontalPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize(),
-        userScrollEnabled = historyOpen[currentPaneId] != true,
+        // History is a reading mode: paging is off while the current pane shows it (leave via ↓ Live).
+        userScrollEnabled = currentPaneId == null || state.pane(currentPaneId).history == null,
     ) { page ->
         val agent = agents[page.coerceAtMost(agents.lastIndex)]
+        val paneId = agent.paneId
+        val frames = remember(paneId) { viewModel.frames(paneId) }
+        DisposableEffect(paneId) { onDispose { viewModel.onPaneGone(paneId) } }
         TerminalScreen(
             agent = agent,
-            herdrAvailable = herdrAvailable,
-            terminal = terminal,
-            settings = settings,
-            onBack = onBack,
-            draft = drafts[agent.paneId] ?: TextFieldValue(""),
-            onDraftChange = { drafts[agent.paneId] = it },
-            onHistoryOpenChange = { open ->
-                if (open) historyOpen[agent.paneId] = true else historyOpen.remove(agent.paneId)
-            },
+            pane = state.pane(paneId),
+            herdrAvailable = state.herdrAvailable,
+            fontSizeSp = state.fontSizeSp,
+            frames = frames,
+            actions = remember(paneId) { viewModel.actionsFor(paneId, onBack) },
         )
     }
 }
+
+private fun TerminalViewModel.actionsFor(paneId: String, onBack: () -> Unit) = PaneActions(
+    onBack = onBack,
+    onGridMeasured = { cols, rows -> onGridMeasured(paneId, cols, rows) },
+    onInput = { bytes -> onInput(paneId, bytes) },
+    onKey = { key -> onKey(paneId, key) },
+    onDraftChange = { draft -> onDraftChange(paneId, draft) },
+    onSubmit = { submit(paneId) },
+    onLoadHistory = { loadHistory(paneId) },
+    onExitHistory = { exitHistory(paneId) },
+    onTakeControl = { takeControl(paneId) },
+    onReleaseControl = { releaseControl(paneId) },
+    onFontSizeChanged = ::setFontSize,
+)
