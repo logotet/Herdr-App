@@ -64,7 +64,7 @@ class HostsViewModel(
         val port = current.port.toIntOrNull() ?: DEFAULT_PORT
         save(
             SavedHost(
-                id = "manual-${current.host.hashCode()}-$port",
+                id = SavedHost.idFor(current.host, port),
                 name = current.name.ifBlank { current.host },
                 host = current.host,
                 port = port,
