@@ -11,7 +11,30 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class HerdrStore {
+class HerdrStore : BridgeListener {
+    override suspend fun onStatus(status: SocketStatus) {
+        when (status) {
+            SocketStatus.Connecting -> setConnectionState(ConnectionState.Connecting)
+            // Connected is reported once the bridge says hello.
+            SocketStatus.Open -> Unit
+            is SocketStatus.Lost -> setConnectionState(ConnectionState.Error(status.message))
+        }
+    }
+
+    override suspend fun onMessage(message: ServerMessage) {
+        when (message) {
+            is ServerMessage.Hello -> {
+                setConnectionState(ConnectionState.Connected(message.value.name))
+                setHerdrStatus(message.value.herdr)
+            }
+            is ServerMessage.Snapshot -> replace(message.value)
+            is ServerMessage.Frame -> onFrame(message.value)
+            is ServerMessage.Stream -> onStream(message.value)
+            is ServerMessage.HerdrStatus -> setHerdrStatus(message.value.toInfo())
+            is ServerMessage.Result, is ServerMessage.Unknown -> Unit
+        }
+    }
+
     private val _workspaces = MutableStateFlow<List<WorkspaceInfo>>(emptyList())
     val workspaces: StateFlow<List<WorkspaceInfo>> = _workspaces.asStateFlow()
     private val _panes = MutableStateFlow<List<PaneInfo>>(emptyList())

@@ -9,9 +9,7 @@ data class SavedHost(
     val host: String,
     val port: Int = 8787,
     val token: String
-) {
-    val wsUrl: String get() = "ws://$host:$port/ws"
-}
+)
 
 interface HostRepository {
     val hosts: kotlinx.coroutines.flow.StateFlow<List<SavedHost>>

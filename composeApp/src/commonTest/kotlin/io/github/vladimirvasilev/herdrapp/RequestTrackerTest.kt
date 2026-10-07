@@ -27,4 +27,12 @@ class RequestTrackerTest {
         val failure = assertIs<RequestOutcome.Failure>(wait.await())
         assertEquals("not_controlling", failure.error.code)
     }
+
+    @Test fun timesOutAndForgetsTheRequest() = runTest {
+        val tracker = RequestTracker()
+        tracker.register("r3")
+        val failure = assertIs<RequestOutcome.Failure>(tracker.await("r3", 1_000))
+        assertEquals("timeout", failure.error.code)
+        assertEquals(0, tracker.pendingCount)
+    }
 }

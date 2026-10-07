@@ -12,32 +12,43 @@ sealed interface RequestOutcome {
     data class Failure(val error: BridgeError) : RequestOutcome
 }
 
+/** Matches results to requests by id. Not thread-safe: the owner confines it to one dispatcher. */
 class RequestTracker {
     private val pending = mutableMapOf<String, CompletableDeferred<RequestOutcome>>()
 
-    fun register(id: String): CompletableDeferred<RequestOutcome> = synchronized(pending) {
-        CompletableDeferred<RequestOutcome>().also { pending[id] = it }
+    val pendingCount: Int get() = pending.size
+
+    fun register(id: String) {
+        pending[id] = CompletableDeferred()
+    }
+
+    fun discard(id: String) {
+        pending.remove(id)
     }
 
     suspend fun await(id: String, timeoutMillis: Long): RequestOutcome {
-        val deferred = synchronized(pending) { pending[id] } ?: return RequestOutcome.Failure(BridgeError("missing_request", "No pending request"))
+        val deferred = pending[id] ?: return RequestOutcome.Failure(BridgeError("missing_request", "No pending request"))
         return try {
             withTimeout(timeoutMillis) { deferred.await() }
         } catch (_: TimeoutCancellationException) {
             RequestOutcome.Failure(BridgeError("timeout", "Request timed out"))
         } finally {
-            synchronized(pending) { pending.remove(id) }
+            pending.remove(id)
         }
     }
 
     fun complete(result: BridgeResultMessage) {
-        val deferred = synchronized(pending) { pending[result.id] } ?: return
-        if (result.ok) deferred.complete(RequestOutcome.Success(result.data))
-        else deferred.complete(RequestOutcome.Failure(result.error ?: BridgeError("unknown", null)))
+        val deferred = pending[result.id] ?: return
+        if (result.ok) {
+            deferred.complete(RequestOutcome.Success(result.data))
+        } else {
+            deferred.complete(RequestOutcome.Failure(result.error ?: BridgeError("unknown", null)))
+        }
     }
 
     fun failAll(error: BridgeError) {
-        val all = synchronized(pending) { pending.values.toList().also { pending.clear() } }
+        val all = pending.values.toList()
+        pending.clear()
         all.forEach { it.complete(RequestOutcome.Failure(error)) }
     }
 }

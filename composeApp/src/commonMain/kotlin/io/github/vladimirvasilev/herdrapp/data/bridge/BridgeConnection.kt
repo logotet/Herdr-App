@@ -1,45 +1,82 @@
 package io.github.vladimirvasilev.herdrapp.data.bridge
 
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.BridgeError
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.CallRequest
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.CloseStreamRequest
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.InputRequest
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.OpenStreamRequest
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.RefreshRequest
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ReleaseControlRequest
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ResizeRequest
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.ServerMessage
+import io.github.vladimirvasilev.herdrapp.data.bridge.dto.TakeControlRequest
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
-import io.github.vladimirvasilev.herdrapp.data.bridge.*
-import io.github.vladimirvasilev.herdrapp.data.bridge.dto.*
-import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
-import io.github.vladimirvasilev.herdrapp.state.HerdrStore
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
-import io.ktor.client.plugins.websocket.webSocket
-import io.ktor.client.request.header
-import io.ktor.http.HttpHeaders
-import io.ktor.websocket.Frame
-import io.ktor.websocket.readText
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.serialization.encodeToString
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.math.min
 
+sealed interface SocketStatus {
+    data object Connecting : SocketStatus
+    data object Open : SocketStatus
+    data class Lost(val message: String) : SocketStatus
+}
+
+/**
+ * Receives everything the bridge pushes. Called on the connection's dispatcher, from the loop that
+ * reads the socket, so an implementation must not wait for a request's result here.
+ */
+interface BridgeListener {
+    suspend fun onStatus(status: SocketStatus) {}
+    suspend fun onMessage(message: ServerMessage) {}
+}
+
+/**
+ * The WebSocket to one bridge: keeps it connected, sends requests and matches their results.
+ *
+ * [dispatcher] must be single-threaded. All mutable state here is touched only on it, which also
+ * keeps JSON parsing off the main thread.
+ */
 class BridgeConnection(
-    private val client: HttpClient,
-    private val store: HerdrStore,
-    private val scope: CoroutineScope
+    private val sockets: BridgeSocketFactory,
+    private val scope: CoroutineScope,
+    private val dispatcher: CoroutineDispatcher,
 ) {
     private val tracker = RequestTracker()
+    private val listeners = mutableListOf<BridgeListener>()
     private val activeStreams = mutableMapOf<String, Pair<Int, Int>>()
-    private var session: DefaultClientWebSocketSession? = null
+    private var socket: BridgeSocket? = null
     private var job: Job? = null
     private var requestSeq = 0
     private val _currentHost = MutableStateFlow<SavedHost?>(null)
     val currentHost: StateFlow<SavedHost?> = _currentHost
 
+    /** Register listeners while wiring the app, before the first [connect]. */
+    fun addListener(listener: BridgeListener) {
+        listeners += listener
+    }
+
     fun connect(host: SavedHost) {
         _currentHost.value = host
-        val previous = job
-        job = scope.launch {
+        scope.launch(dispatcher) {
+            val previous = job
+            job = currentCoroutineContext()[Job]
             // Wait for the old socket to close so switching hosts never leaves two connections.
             previous?.cancelAndJoin()
             loop(host)
@@ -47,84 +84,101 @@ class BridgeConnection(
     }
 
     private suspend fun loop(host: SavedHost) {
-        var delayMs = 1_000L
+        var delayMs = INITIAL_BACKOFF_MS
         while (currentCoroutineContext().isActive) {
-            store.setConnectionState(ConnectionState.Connecting)
-            try {
-                client.webSocket(host.wsUrl, request = { header(HttpHeaders.Authorization, "Bearer ${host.token}") }) {
-                    session = this
-                    delayMs = 1_000L
-                    activeStreams.toMap().forEach { (paneId, size) -> sendRaw(BridgeJson.encode(OpenStreamRequest(paneId = paneId, cols = size.first, rows = size.second))) }
-                    for (frame in incoming) {
-                        if (frame is Frame.Text) handleIncomingText(frame.readText())
+            notify(SocketStatus.Connecting)
+            val lost = try {
+                sockets.connect(host) { opened ->
+                    // The socket library may run this block on its own threads.
+                    withContext(dispatcher) {
+                        socket = opened
+                        delayMs = INITIAL_BACKOFF_MS
+                        notify(SocketStatus.Open)
+                        activeStreams.toMap().forEach { (paneId, size) ->
+                            opened.send(BridgeJson.encode(OpenStreamRequest(paneId = paneId, cols = size.first, rows = size.second)))
+                        }
+                        while (true) {
+                            val text = opened.receive() ?: break
+                            handleIncomingText(text)
+                        }
                     }
                 }
-                store.setConnectionState(ConnectionState.Error("Connection closed"))
+                "Connection closed"
             } catch (ce: CancellationException) {
                 throw ce
             } catch (t: Throwable) {
-                store.setConnectionState(ConnectionState.Error(t.message ?: t::class.simpleName ?: "Connection error"))
+                t.message ?: t::class.simpleName ?: "Connection error"
+            } finally {
+                socket = null
+                tracker.failAll(BridgeError("connection_lost", "Connection lost"))
             }
+            notify(SocketStatus.Lost(lost))
             // A clean close by the server backs off like an error instead of reconnecting in a tight loop.
-            tracker.failAll(BridgeError("connection_lost", "Connection lost"))
-            session = null
             delay(delayMs)
-            delayMs = min(delayMs * 2, 30_000L)
+            delayMs = min(delayMs * 2, MAX_BACKOFF_MS)
         }
     }
 
-    fun handleIncomingText(text: String) {
-        when (val message = BridgeJson.parse(text)) {
-            is ServerMessage.Hello -> {
-                store.setConnectionState(ConnectionState.Connected(message.value.name))
-                store.setHerdrStatus(message.value.herdr)
-            }
-            is ServerMessage.Snapshot -> store.replace(message.value)
-            is ServerMessage.Frame -> store.onFrame(message.value)
-            is ServerMessage.Stream -> store.onStream(message.value)
-            is ServerMessage.HerdrStatus -> store.setHerdrStatus(message.value.toInfo())
-            is ServerMessage.Result -> tracker.complete(message.value)
-            is ServerMessage.Unknown -> Unit
+    private suspend fun notify(status: SocketStatus) {
+        listeners.forEach { it.onStatus(status) }
+    }
+
+    private suspend fun handleIncomingText(text: String) {
+        // One malformed message must not tear down the connection.
+        val message = try {
+            BridgeJson.parse(text)
+        } catch (_: IllegalArgumentException) {
+            return
+        }
+        if (message is ServerMessage.Result) {
+            tracker.complete(message.value)
+        } else {
+            listeners.forEach { it.onMessage(message) }
         }
     }
 
     suspend fun refresh(): RequestOutcome = request { id -> BridgeJson.encode(RefreshRequest(id = id)) }
 
-    suspend fun openStream(paneId: String, cols: Int, rows: Int): RequestOutcome {
-        activeStreams[paneId] = cols to rows
-        return request { id -> BridgeJson.encode(OpenStreamRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
-    }
+    suspend fun openStream(paneId: String, cols: Int, rows: Int): RequestOutcome = request(
+        before = { activeStreams[paneId] = cols to rows },
+    ) { id -> BridgeJson.encode(OpenStreamRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
 
-    suspend fun closeStream(paneId: String): RequestOutcome {
-        activeStreams.remove(paneId)
-        return request { id -> BridgeJson.encode(CloseStreamRequest(id = id, paneId = paneId)) }
-    }
+    suspend fun closeStream(paneId: String): RequestOutcome = request(
+        before = { activeStreams.remove(paneId) },
+    ) { id -> BridgeJson.encode(CloseStreamRequest(id = id, paneId = paneId)) }
 
     suspend fun takeControl(paneId: String, cols: Int, rows: Int, takeover: Boolean = false): RequestOutcome =
-        request { id -> BridgeJson.encode(TakeControlRequest(id = id, paneId = paneId, cols = cols, rows = rows, takeover = takeover.takeIf { it })) }
+        request { id ->
+            BridgeJson.encode(
+                TakeControlRequest(id = id, paneId = paneId, cols = cols, rows = rows, takeover = takeover.takeIf { it })
+            )
+        }
 
-    suspend fun releaseControl(paneId: String): RequestOutcome = request { id -> BridgeJson.encode(ReleaseControlRequest(id = id, paneId = paneId)) }
+    suspend fun releaseControl(paneId: String): RequestOutcome =
+        request { id -> BridgeJson.encode(ReleaseControlRequest(id = id, paneId = paneId)) }
 
     @OptIn(ExperimentalEncodingApi::class)
     suspend fun inputBytes(paneId: String, bytes: ByteArray): RequestOutcome = request { id ->
         BridgeJson.encode(InputRequest(id = id, paneId = paneId, bytes = Base64.Default.encode(bytes)))
     }
 
-    suspend fun resize(paneId: String, cols: Int, rows: Int): RequestOutcome {
-        activeStreams[paneId] = cols to rows
-        return request { id -> BridgeJson.encode(ResizeRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
-    }
+    suspend fun resize(paneId: String, cols: Int, rows: Int): RequestOutcome = request(
+        before = { activeStreams[paneId] = cols to rows },
+    ) { id -> BridgeJson.encode(ResizeRequest(id = id, paneId = paneId, cols = cols, rows = rows)) }
 
     suspend fun sendKeys(paneId: String, keys: List<String>): RequestOutcome {
         val params = buildJsonObject {
             put("pane_id", paneId)
-            put("keys", kotlinx.serialization.json.JsonArray(keys.map { kotlinx.serialization.json.JsonPrimitive(it) }))
+            put("keys", JsonArray(keys.map { JsonPrimitive(it) }))
         }
         return call("pane.send_keys", params)
     }
 
     suspend fun sendText(paneId: String, text: String): RequestOutcome {
-        val params = buildJsonObject { put("pane_id", paneId); put("text", text) }
+        val params = buildJsonObject {
+            put("pane_id", paneId)
+            put("text", text)
+        }
         return call("pane.send_text", params)
     }
 
@@ -133,7 +187,7 @@ class BridgeConnection(
         val params = buildJsonObject {
             put("pane_id", paneId)
             if (text.isNotEmpty()) put("text", text)
-            put("keys", kotlinx.serialization.json.JsonArray(listOf(kotlinx.serialization.json.JsonPrimitive("enter"))))
+            put("keys", JsonArray(listOf(JsonPrimitive("enter"))))
         }
         return call("pane.send_input", params)
     }
@@ -150,15 +204,35 @@ class BridgeConnection(
         return call("pane.read", params)
     }
 
-    suspend fun call(method: String, params: JsonElement): RequestOutcome = request { id -> BridgeJson.encode(CallRequest(id = id, method = method, params = params)) }
+    suspend fun call(method: String, params: JsonElement): RequestOutcome =
+        request { id -> BridgeJson.encode(CallRequest(id = id, method = method, params = params)) }
 
-    private suspend fun request(timeoutMillis: Long = 10_000L, body: (String) -> String): RequestOutcome {
+    private suspend fun request(
+        timeoutMillis: Long = REQUEST_TIMEOUT_MS,
+        before: () -> Unit = {},
+        body: (String) -> String,
+    ): RequestOutcome = withContext(dispatcher) {
+        before()
+        val open = socket ?: return@withContext RequestOutcome.Failure(BridgeError("disconnected", "Not connected"))
         val id = "m${++requestSeq}"
         tracker.register(id)
-        val ws = session ?: return RequestOutcome.Failure(BridgeError("disconnected", "Not connected"))
-        sendRaw(body(id))
-        return tracker.await(id, timeoutMillis)
+        try {
+            open.send(body(id))
+        } catch (ce: CancellationException) {
+            tracker.discard(id)
+            throw ce
+        } catch (_: Throwable) {
+            tracker.discard(id)
+            return@withContext RequestOutcome.Failure(BridgeError("connection_lost", "Connection lost"))
+        }
+        tracker.await(id, timeoutMillis)
     }
 
-    private suspend fun sendRaw(text: String) { session?.send(Frame.Text(text)) }
+    internal val pendingRequests: Int get() = tracker.pendingCount
+
+    private companion object {
+        const val INITIAL_BACKOFF_MS = 1_000L
+        const val MAX_BACKOFF_MS = 30_000L
+        const val REQUEST_TIMEOUT_MS = 10_000L
+    }
 }
