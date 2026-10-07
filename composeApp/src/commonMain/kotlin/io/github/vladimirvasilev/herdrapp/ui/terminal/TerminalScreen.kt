@@ -102,7 +102,11 @@ internal fun TerminalScreen(
                 onSend = actions.onSubmit,
             )
         }
-        ExtraKeysBar(modifiers = state.modifiers, onKey = actions.onKey)
+        ExtraKeysBar(
+            keys = if (pane.agent != null) AGENT_KEYS else PANE_KEYS,
+            modifiers = state.modifiers,
+            onKey = actions.onKey,
+        )
     }
     if (confirmTakeover) {
         TakeControlDialog(

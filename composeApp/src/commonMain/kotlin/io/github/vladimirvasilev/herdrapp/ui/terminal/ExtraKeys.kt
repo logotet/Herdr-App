@@ -80,27 +80,24 @@ internal fun resolve(key: ExtraKey, modifiers: KeyModifiers): KeySpec? {
     }
 }
 
-internal val EXTRA_KEYS: List<ExtraKey> = listOf(
-    ExtraKey.Named("Esc", "esc"),
-    ExtraKey.Named("Tab", "tab"),
-    ExtraKey.Modifier("Ctrl", KeyModifier.CTRL),
-    ExtraKey.Modifier("Alt", KeyModifier.ALT),
-    ExtraKey.Named("Up", "up"),
-    ExtraKey.Named("Down", "down"),
-    ExtraKey.Named("Left", "left"),
-    ExtraKey.Named("Right", "right"),
-    ExtraKey.Named("Enter", "enter"),
-    ExtraKey.Named("Ctrl+C", "ctrl+c"),
-    ExtraKey.Named("PgUp", "pageup"),
-    ExtraKey.Named("PgDn", "pagedown"),
-    ExtraKey.Named("Home", "home"),
-    ExtraKey.Named("End", "end"),
-    ExtraKey.Text("/"),
-    ExtraKey.Text("|"),
-    ExtraKey.Text("-"),
-    ExtraKey.Text("1"),
-    ExtraKey.Text("2"),
-    ExtraKey.Text("y"),
-    ExtraKey.Text("n"),
-    ExtraKey.Named("Shift+Tab", "shift+tab"),
+private val ESC = ExtraKey.Named("Esc", "esc")
+private val TAB = ExtraKey.Named("Tab", "tab")
+private val ENTER = ExtraKey.Named("Enter", "enter")
+private val CTRL = ExtraKey.Modifier("Ctrl", KeyModifier.CTRL)
+private val ALT = ExtraKey.Modifier("Alt", KeyModifier.ALT)
+private val UP = ExtraKey.Named("↑", "up")
+private val DOWN = ExtraKey.Named("↓", "down")
+private val LEFT = ExtraKey.Named("←", "left")
+private val RIGHT = ExtraKey.Named("→", "right")
+
+/** Two rows of seven keys. The arrows sit in the same cells in both sets. */
+internal val AGENT_KEYS: List<List<ExtraKey>> = listOf(
+    listOf(ESC, ExtraKey.Named("S-Tab", "shift+tab"), ExtraKey.Text("/"), ExtraKey.Text("1"), UP, ExtraKey.Text("2"), ExtraKey.Text("3")),
+    listOf(TAB, CTRL, ExtraKey.Named("^C", "ctrl+c"), LEFT, DOWN, RIGHT, ENTER),
+)
+
+/** For a pane without an agent: an editor, a file manager, a shell. */
+internal val PANE_KEYS: List<List<ExtraKey>> = listOf(
+    listOf(ESC, ExtraKey.Text(":"), ExtraKey.Text("/"), ENTER, UP, ExtraKey.Named("End", "end"), ExtraKey.Named("PgUp", "pageup")),
+    listOf(TAB, CTRL, ALT, LEFT, DOWN, RIGHT, ExtraKey.Named("PgDn", "pagedown")),
 )
