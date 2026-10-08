@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.vladimirvasilev.herdrapp.AppContainer
@@ -29,6 +30,10 @@ internal fun TerminalRoute(container: AppContainer, initialPaneId: String, onBac
 @Composable
 private fun TerminalPagerScreen(viewModel: TerminalViewModel, initialPaneId: String, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LifecycleStartEffect(viewModel) {
+        viewModel.onShown()
+        onStopOrDispose { viewModel.onHidden() }
+    }
     val panes = state.panes
     if (panes.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

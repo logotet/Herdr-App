@@ -81,6 +81,9 @@ internal class TerminalViewModel(
     private val openStreams = mutableSetOf<String>()
     /** Panes that were under control when they left the screen; control is taken back on return. */
     private val resumeControl = mutableSetOf<String>()
+    /** True while the app is off the screen. Streams are stopped then and listed in [paused]. */
+    private var hidden = false
+    private val paused = mutableSetOf<String>()
     private val noScrollbackAt = mutableMapOf<String, TimeMark>()
     private val noticeJobs = mutableMapOf<String, Job>()
     private var pagerResolved = false
@@ -119,6 +122,10 @@ internal class TerminalViewModel(
     fun onGridMeasured(paneId: String, cols: Int, rows: Int) {
         val grid = cols to rows
         grids[paneId] = grid
+        if (hidden) {
+            paused += paneId
+            return
+        }
         if (openStreams.add(paneId)) {
             sentGrids[paneId] = grid
             val resume = resumeControl.remove(paneId)
@@ -143,15 +150,43 @@ internal class TerminalViewModel(
      * the stream releases control, so a pane that was controlled is remembered for its return.
      */
     fun onPaneGone(paneId: String) {
-        if (controlling(paneId)) resumeControl += paneId else resumeControl -= paneId
-        terminal.close(paneId)
-        openStreams -= paneId
+        // A paused pane's stream is already stopped.
+        if (!paused.remove(paneId)) stopStream(paneId)
         grids -= paneId
-        sentGrids -= paneId
-        resizeJobs.remove(paneId)?.cancel()
         noScrollbackAt -= paneId
         noticeJobs.remove(paneId)?.cancel()
         update(paneId) { PaneUiState(draft = it.draft) }
+    }
+
+    /**
+     * The app left the screen. Nobody is looking, so every stream is stopped: a process that is
+     * kept alive in the background would otherwise receive frames for as long as it lives.
+     */
+    fun onHidden() {
+        hidden = true
+        openStreams.toList().forEach { paneId ->
+            stopStream(paneId)
+            paused += paneId
+        }
+    }
+
+    /** The app is back on screen: the streams stopped by [onHidden] are opened again as they were. */
+    fun onShown() {
+        hidden = false
+        val returning = paused.toList()
+        paused.clear()
+        returning.forEach { paneId ->
+            val (cols, rows) = grids[paneId] ?: return@forEach
+            onGridMeasured(paneId, cols, rows)
+        }
+    }
+
+    private fun stopStream(paneId: String) {
+        if (controlling(paneId)) resumeControl += paneId else resumeControl -= paneId
+        terminal.close(paneId)
+        openStreams -= paneId
+        sentGrids -= paneId
+        resizeJobs.remove(paneId)?.cancel()
     }
 
     fun onDraftChange(paneId: String, draft: TextFieldValue) = update(paneId) { it.copy(draft = draft) }

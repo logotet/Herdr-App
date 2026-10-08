@@ -285,6 +285,39 @@ class TerminalViewModelTest {
         assertEquals(listOf("close $PANE", "open $PANE 45x30"), terminal.calls)
     }
 
+    @Test
+    fun streamsStopWhileTheAppIsHiddenAndComeBackAsTheyWere() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.onGridMeasured(PANE, 45, 30)
+        runCurrent()
+        terminal.streamModes.value = mapOf(PANE to StreamMode.CONTROL)
+        terminal.calls.clear()
+
+        viewModel.onHidden()
+        runCurrent()
+        assertEquals(listOf("close $PANE"), terminal.calls)
+
+        terminal.streamModes.value = emptyMap()
+        viewModel.onShown()
+        runCurrent()
+        assertEquals(listOf("close $PANE", "open $PANE 45x30", "takeControl $PANE 45x30"), terminal.calls)
+    }
+
+    @Test
+    fun aPaneThatLeavesWhileTheAppIsHiddenIsNotClosedTwiceOrReopened() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.onGridMeasured(PANE, 45, 30)
+        runCurrent()
+        terminal.calls.clear()
+
+        viewModel.onHidden()
+        viewModel.onPaneGone(PANE)
+        viewModel.onShown()
+        runCurrent()
+
+        assertEquals(listOf("close $PANE"), terminal.calls)
+    }
+
     private fun scrolledBack(lines: Int, pcGrid: GridSize? = GridSize(144, 39)): Session {
         val pane = Pane(PANE, "w1", null, "Fix tests", AgentState("claude", AgentStatus.IDLE, null), lines, pcGrid)
         return Session(agents = listOf(pane), panes = listOf(pane))
