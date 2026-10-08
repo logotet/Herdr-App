@@ -31,8 +31,8 @@ The phone talks only to the bridge. The bridge talks to herdr locally.
 ## 3. Install the bridge, once per PC
 
 ```powershell
-git clone <herdr-bridge repo>
-cd herdr-bridge
+git clone https://github.com/logotet/Herdr-Bridge.git
+cd Herdr-Bridge
 uv sync
 uv run herdr-bridge check
 ```
