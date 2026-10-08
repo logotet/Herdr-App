@@ -61,6 +61,6 @@ if ($LASTEXITCODE) { throw 'adb install failed' }
 Write-Host ''
 Write-Host "Phone -> 127.0.0.1:$Port is forwarded to this PC. Starting herdr-bridge (Ctrl+C to stop)."
 Write-Host 'In the app: Hosts -> Scan pairing QR (scan the QR below).'
-$bridgeArgs = @('-m', 'uv', 'run', '--project', $BridgeRepo, 'herdr-bridge', 'serve', '--bind', '127.0.0.1', '--port', "$Port")
+$bridgeArgs = @('-m', 'uv', 'run', '--project', $BridgeRepo, 'herdr-bridge', 'serve', '--qr', '--bind', '127.0.0.1', '--port', "$Port")
 if ($Session) { $bridgeArgs += @('--session', $Session) }
 & python @bridgeArgs
