@@ -53,6 +53,18 @@ class ExtraKeysTest {
     }
 
     @Test
+    fun aKeyHerdrCannotNameIsSentAsItsEscapeSequence() {
+        fun sent(key: ExtraKey, modifiers: KeyModifiers = KeyModifiers()) =
+            assertIs<KeySpec.Bytes>(resolve(key, modifiers)).textFallback
+
+        assertEquals("\u001b[5~", sent(ExtraKey.Sequence("PgUp", 5, '~')))
+        assertEquals("\u001b[6~", sent(ExtraKey.Sequence("PgDn", 6, '~')))
+        assertEquals("\u001b[F", sent(ExtraKey.Sequence("End", 1, 'F')))
+        assertEquals("\u001b[5;5~", sent(ExtraKey.Sequence("PgUp", 5, '~'), ctrl))
+        assertEquals("\u001b[1;3F", sent(ExtraKey.Sequence("End", 1, 'F'), KeyModifiers(alt = ModifierState.ONCE)))
+    }
+
+    @Test
     fun aModifierKeySendsNothing() {
         assertNull(resolve(ExtraKey.Modifier("Ctrl", KeyModifier.CTRL), KeyModifiers()))
     }

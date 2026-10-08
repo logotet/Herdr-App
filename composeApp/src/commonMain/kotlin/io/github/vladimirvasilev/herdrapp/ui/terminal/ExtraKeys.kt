@@ -52,12 +52,20 @@ internal sealed interface ExtraKey {
 
     data class Modifier(override val label: String, val modifier: KeyModifier) : ExtraKey
 
-    /** A key herdr knows by [name], for example "esc" or "pageup". */
+    /** A key herdr knows by [name], for example "esc" or "up". */
     data class Named(override val label: String, val name: String) : ExtraKey
 
     /** A printable character, typed as it is. */
     data class Text(override val label: String) : ExtraKey
+
+    /**
+     * A key herdr has no name for (it rejects "pageup", "home", "end" and "delete"), sent as the
+     * escape sequence a terminal sends for it: `ESC [ code final`, for example `ESC [ 5 ~`.
+     */
+    data class Sequence(override val label: String, val code: Int, val final: Char) : ExtraKey
 }
+
+private const val ESCAPE = "\u001b["
 
 /**
  * What [key] sends while [modifiers] are held; null for a modifier key, which sends nothing.
@@ -71,6 +79,16 @@ internal fun resolve(key: ExtraKey, modifiers: KeyModifiers): KeySpec? {
     return when (key) {
         is ExtraKey.Modifier -> null
         is ExtraKey.Named -> KeySpec.HerdrKey(prefix + key.name)
+        is ExtraKey.Sequence -> {
+            // xterm's form for a modified key: the code, then 1 plus 2 for Alt and 4 for Ctrl.
+            val modifier = 1 + (if (modifiers.alt.active) 2 else 0) + (if (modifiers.ctrl.active) 4 else 0)
+            val sequence = when {
+                modifier > 1 -> "$ESCAPE${key.code};$modifier${key.final}"
+                key.code == 1 -> "$ESCAPE${key.final}"
+                else -> "$ESCAPE${key.code}${key.final}"
+            }
+            KeySpec.Bytes(sequence.encodeToByteArray(), sequence)
+        }
         is ExtraKey.Text ->
             if (prefix.isEmpty()) {
                 KeySpec.Bytes(key.label.encodeToByteArray(), key.label)
@@ -98,6 +116,6 @@ internal val AGENT_KEYS: List<List<ExtraKey>> = listOf(
 
 /** For a pane without an agent: an editor, a file manager, a shell. */
 internal val PANE_KEYS: List<List<ExtraKey>> = listOf(
-    listOf(ESC, ExtraKey.Text(":"), ExtraKey.Text("/"), ENTER, UP, ExtraKey.Named("End", "end"), ExtraKey.Named("PgUp", "pageup")),
-    listOf(TAB, CTRL, ALT, LEFT, DOWN, RIGHT, ExtraKey.Named("PgDn", "pagedown")),
+    listOf(ESC, ExtraKey.Text(":"), ExtraKey.Text("/"), ENTER, UP, ExtraKey.Sequence("End", 1, 'F'), ExtraKey.Sequence("PgUp", 5, '~')),
+    listOf(TAB, CTRL, ALT, LEFT, DOWN, RIGHT, ExtraKey.Sequence("PgDn", 6, '~')),
 )
