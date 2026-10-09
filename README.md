@@ -28,7 +28,7 @@ On the workspace list, long-press a pane, a tab name or a workspace to rename or
 
 ## Notifications
 
-Off by default. **Stay connected and notify** on the Hosts screen keeps the bridge connection while the app is off the screen and posts a notification when an agent starts waiting for you or finishes. Tapping it opens the app. Waiting and finished are separate Android notification channels, so either can be silenced in the system settings.
+Off by default. **Stay connected and notify** on the Hosts screen keeps the bridge connection while the app is off the screen and posts a notification when an agent starts waiting for you or finishes. Tapping it opens that agent's pane. Waiting and finished are separate Android notification channels, so either can be silenced in the system settings.
 
 The connection is kept by a foreground service, which is why Android shows a permanent "Connected to" notification meanwhile. It only runs while there is something to wait for: ten minutes after the last agent stopped working or waiting, or after the bridge became unreachable, it stops, and it starts again the next time the app is opened. A task started later from the PC therefore does not notify until then. The app holds no wake lock, so in deep sleep a notification can arrive late. While the app is off the screen it closes its pane streams and releases control.
 
