@@ -40,11 +40,14 @@ object AgentOrganizer {
         AgentStatus.UNKNOWN,
     )
 
-    /** Blocked agents first, then by the position of their workspace in [workspaceIds]. */
-    fun orderedAgents(agents: List<Pane>, workspaceIds: List<String>): List<Pane> {
+    /**
+     * By the position of their workspace in [workspaceIds], with the blocked agents moved to the
+     * front when [blockedFirst]. Without it the order only changes when an agent comes or goes.
+     */
+    fun orderedAgents(agents: List<Pane>, workspaceIds: List<String>, blockedFirst: Boolean = true): List<Pane> {
         val workspaceOrder = workspaceIds.withIndex().associate { it.value to it.index }
         return agents.sortedWith(
-            compareByDescending<Pane> { it.agent?.status == AgentStatus.BLOCKED }
+            compareByDescending<Pane> { blockedFirst && it.agent?.status == AgentStatus.BLOCKED }
                 .thenBy { workspaceOrder[it.workspaceId] ?: Int.MAX_VALUE }
                 .thenBy { it.tabId ?: "" }
                 .thenBy { it.paneId }

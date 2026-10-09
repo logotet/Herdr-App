@@ -340,14 +340,22 @@ internal class TerminalViewModel(
      */
     private fun pagerPanes(current: Session): List<Pane> {
         if (!pagerResolved) {
-            val opened = current.panes.firstOrNull { it.paneId == initialPaneId } ?: return current.agents
+            val opened = current.panes.firstOrNull { it.paneId == initialPaneId } ?: return agentPages(current)
             pagerResolved = true
             pagerWorkspaceId = opened.workspaceId.takeIf { opened.agent == null }
         }
-        val workspaceId = pagerWorkspaceId ?: return current.agents
+        val workspaceId = pagerWorkspaceId ?: return agentPages(current)
         // The same order as the workspace's section on the home screen.
         return AgentOrganizer.groups(current).firstOrNull { it.workspace.id == workspaceId }?.panes.orEmpty()
     }
+
+    /**
+     * The agents in an order that a change of status does not disturb. The session lists the
+     * waiting agents first, and a page is a position: in that order, the page the user is looking
+     * at would show another agent's pane the moment one starts or stops waiting.
+     */
+    private fun agentPages(current: Session): List<Pane> =
+        AgentOrganizer.orderedAgents(current.agents, current.workspaces.map { it.id }, blockedFirst = false)
 
     private fun toUiState(
         current: Session,

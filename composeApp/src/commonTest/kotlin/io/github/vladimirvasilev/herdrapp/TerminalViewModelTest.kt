@@ -360,6 +360,23 @@ class TerminalViewModelTest {
     }
 
     @Test
+    fun theAgentPagesKeepTheirOrderWhenAnAgentStartsWaiting() = runTest(dispatcher) {
+        val viewModel = viewModel(opened = "w1:p1")
+        val waiting = agent("w2:p1", "w2").copy(agent = AgentState("claude", AgentStatus.BLOCKED, null))
+        session.session.value = sessionOf(agent("w1:p1", "w1"), agent("w2:p1", "w2"))
+        runCurrent()
+
+        // The session lists a waiting agent first. The pager counts pages, so a page must not
+        // start to show another pane because a status changed.
+        session.session.value = sessionOf(waiting, agent("w1:p1", "w1")).copy(
+            workspaces = listOf(Workspace("w1", 1, "w1", 0), Workspace("w2", 2, "w2", 0)),
+        )
+        runCurrent()
+
+        assertEquals(listOf("w1:p1", "w2:p1"), viewModel.uiState.value.panes.map { it.paneId })
+    }
+
+    @Test
     fun openedOnAnotherPaneItPagesThroughThatWorkspace() = runTest(dispatcher) {
         val viewModel = viewModel(opened = "w1:p2")
         session.session.value = sessionOf(agent("w1:p1", "w1"), shell("w1:p2", "w1"), agent("w2:p1", "w2"))
