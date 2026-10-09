@@ -7,6 +7,9 @@ import io.github.vladimirvasilev.herdrapp.data.BridgeSessionRepository
 import io.github.vladimirvasilev.herdrapp.data.BridgeTerminalRepository
 import io.github.vladimirvasilev.herdrapp.data.bridge.BridgeConnection
 import io.github.vladimirvasilev.herdrapp.data.bridge.KtorBridgeSocketFactory
+import io.github.vladimirvasilev.herdrapp.notifications.AgentNotifier
+import io.github.vladimirvasilev.herdrapp.notifications.AppVisibility
+import io.github.vladimirvasilev.herdrapp.notifications.BackgroundWatch
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.WebSockets
@@ -45,5 +48,12 @@ class HerdrApplication : Application() {
             hosts = AndroidHostRepository(this, appScope),
             settings = AndroidSettingsRepository(this, appScope),
         )
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        // Created here so it sees the first activity start.
+        val visibility = AppVisibility(this)
+        BackgroundWatch(this, container.session, container.settings, visibility, AgentNotifier(this)).start(appScope)
     }
 }

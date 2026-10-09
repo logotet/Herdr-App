@@ -88,6 +88,15 @@ The banner at the top of the app turns green and reads "Connected to" followed b
   button turns red; tap it to release.
 - **Pull down** on the pane for a scrollable History.
 
+**Notifications**
+- On the Hosts screen, switch on **Stay connected and notify** and allow notifications. The app
+  then tells you when an agent starts waiting for you or finishes, also while it is closed.
+- While it watches, Android shows a permanent "Connected to" notification.
+- It watches only while an agent is working or waiting, and for ten minutes after. If you start a
+  task from the PC later, open the app once so it watches again.
+- It needs the phone to reach the PC. After a long time with the screen off, a notification can
+  be late; exempting the app from battery optimisation in the phone's settings helps.
+
 ## 8. More devices
 
 - **Another phone, same PC:** run `pair` again and scan. It is the same token.
@@ -111,5 +120,5 @@ The banner at the top of the app turns green and reads "Connected to" followed b
 
 The bridge writes its log to `%APPDATA%\herdr-bridge\bridge.log`.
 
-Known limits: the app disconnects when it goes to the background, and outside Tailscale the token
-is sent unencrypted.
+Known limits: without the notifications switch the app disconnects when it goes to the
+background, and outside Tailscale the token is sent unencrypted.
