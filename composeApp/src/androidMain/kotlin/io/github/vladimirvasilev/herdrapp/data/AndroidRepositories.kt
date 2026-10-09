@@ -1,6 +1,7 @@
 package io.github.vladimirvasilev.herdrapp.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -24,6 +25,7 @@ private val HOSTS = stringPreferencesKey("hosts_json")
 private val FONT_SIZE = floatPreferencesKey("terminal_font_size")
 // Stored as the enum's name; do not rename the constants of HomeView.
 private val HOME_VIEW = stringPreferencesKey("home_view")
+private val BACKGROUND_ALERTS = booleanPreferencesKey("background_alerts")
 
 /** The stored form of a host. Field names are the on-disk format; do not rename them. */
 @Serializable
@@ -88,5 +90,13 @@ class AndroidSettingsRepository(context: Context, scope: CoroutineScope) : Setti
 
     override suspend fun setHomeView(view: HomeView) {
         appContext.dataStore.edit { it[HOME_VIEW] = view.name }
+    }
+
+    override val backgroundAlerts: StateFlow<Boolean> = appContext.dataStore.data
+        .map { it[BACKGROUND_ALERTS] ?: false }
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    override suspend fun setBackgroundAlerts(enabled: Boolean) {
+        appContext.dataStore.edit { it[BACKGROUND_ALERTS] = enabled }
     }
 }

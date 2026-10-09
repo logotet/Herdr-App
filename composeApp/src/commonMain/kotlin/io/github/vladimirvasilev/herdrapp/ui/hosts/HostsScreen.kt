@@ -33,8 +33,11 @@ import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 
 @Composable
 internal fun HostsRoute(container: AppContainer, onDone: () -> Unit) {
-    val viewModel = viewModel { HostsViewModel(container.hosts, container.session) }
+    val viewModel = viewModel { HostsViewModel(container.hosts, container.session, container.settings) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val askToNotify = LocalNotificationPermission.current.rememberRequest { granted ->
+        viewModel.setBackgroundAlerts(enabled = true, mayNotify = granted)
+    }
     val scan = LocalQrScanner.current.rememberLauncher { raw -> if (viewModel.onScanned(raw)) onDone() }
     HostsScreen(
         state = state,
@@ -50,6 +53,7 @@ internal fun HostsRoute(container: AppContainer, onDone: () -> Unit) {
         onPortChange = viewModel::onPortChange,
         onTokenChange = viewModel::onTokenChange,
         onSave = { if (viewModel.saveForm()) onDone() },
+        onBackgroundAlerts = { enabled -> if (enabled) askToNotify() else viewModel.setBackgroundAlerts(false) },
     )
 }
 
@@ -65,6 +69,7 @@ internal fun HostsScreen(
     onPortChange: (String) -> Unit,
     onTokenChange: (String) -> Unit,
     onSave: () -> Unit,
+    onBackgroundAlerts: (Boolean) -> Unit,
 ) {
     val form = state.form
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -81,6 +86,8 @@ internal fun HostsScreen(
         items(state.hosts, key = { it.id }) { saved ->
             SavedHostRow(saved, onSelect = { onSelect(saved) }, onDelete = { onDelete(saved) })
         }
+        item { Divider() }
+        item { BackgroundAlertsRow(state.backgroundAlerts, state.alertsDenied, onBackgroundAlerts) }
         item { Divider() }
         item { Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.hosts_scan)) } }
         item { FormField(form.name, onNameChange, stringResource(Res.string.hosts_field_name)) }

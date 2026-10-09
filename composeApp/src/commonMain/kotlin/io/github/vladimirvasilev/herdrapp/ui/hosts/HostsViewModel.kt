@@ -6,6 +6,7 @@ import io.github.vladimirvasilev.herdrapp.domain.HostRepository
 import io.github.vladimirvasilev.herdrapp.domain.PairUriParser
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
+import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +28,9 @@ enum class HostFormError { MISSING_FIELDS, INVALID_QR }
 data class HostsUiState(
     val hosts: List<SavedHost> = emptyList(),
     val form: HostForm = HostForm(),
+    val backgroundAlerts: Boolean = false,
+    /** The user asked for background alerts but the system does not let the app notify. */
+    val alertsDenied: Boolean = false,
 )
 
 private const val DEFAULT_PORT = 8787
@@ -34,14 +38,31 @@ private const val DEFAULT_PORT = 8787
 class HostsViewModel(
     private val hosts: HostRepository,
     private val session: SessionRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
     private val form = MutableStateFlow(HostForm())
+    private val alertsDenied = MutableStateFlow(false)
 
-    val uiState: StateFlow<HostsUiState> = combine(hosts.hosts, form, ::HostsUiState).stateIn(
+    val uiState: StateFlow<HostsUiState> = combine(
+        hosts.hosts,
+        form,
+        settings.backgroundAlerts,
+        alertsDenied,
+        ::HostsUiState,
+    ).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = HostsUiState(hosts.hosts.value, form.value),
+        initialValue = HostsUiState(hosts.hosts.value, form.value, settings.backgroundAlerts.value),
     )
+
+    /**
+     * Switches background alerts on or off. Switching on only takes effect when the system lets
+     * the app notify ([mayNotify]); otherwise the screen says why nothing happened.
+     */
+    fun setBackgroundAlerts(enabled: Boolean, mayNotify: Boolean = true) {
+        alertsDenied.value = enabled && !mayNotify
+        viewModelScope.launch { settings.setBackgroundAlerts(enabled && mayNotify) }
+    }
 
     fun onNameChange(value: String) = form.update { it.copy(name = value) }
     fun onHostChange(value: String) = form.update { it.copy(host = value) }

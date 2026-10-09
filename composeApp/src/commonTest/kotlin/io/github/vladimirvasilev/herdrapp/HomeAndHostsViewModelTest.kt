@@ -202,7 +202,7 @@ class HomeAndHostsViewModelTest {
     @Test
     fun hostsRejectsAnIncompleteForm() = runTest(dispatcher) {
         val hosts = FakeHostRepository()
-        val viewModel = HostsViewModel(hosts, session)
+        val viewModel = HostsViewModel(hosts, session, settings)
         backgroundScope.launch { viewModel.uiState.collect {} }
         viewModel.onHostChange("pc.local")
 
@@ -216,7 +216,7 @@ class HomeAndHostsViewModelTest {
     @Test
     fun hostsSavesTheFormConnectsAndClearsIt() = runTest(dispatcher) {
         val hosts = FakeHostRepository()
-        val viewModel = HostsViewModel(hosts, session)
+        val viewModel = HostsViewModel(hosts, session, settings)
         backgroundScope.launch { viewModel.uiState.collect {} }
         viewModel.onHostChange("pc.local")
         viewModel.onPortChange("9000")
@@ -235,7 +235,7 @@ class HomeAndHostsViewModelTest {
     @Test
     fun hostsHandlesScanResults() = runTest(dispatcher) {
         val hosts = FakeHostRepository()
-        val viewModel = HostsViewModel(hosts, session)
+        val viewModel = HostsViewModel(hosts, session, settings)
         backgroundScope.launch { viewModel.uiState.collect {} }
 
         assertFalse(viewModel.onScanned(null))
@@ -249,9 +249,29 @@ class HomeAndHostsViewModelTest {
     }
 
     @Test
+    fun backgroundAlertsAreSwitchedOnOnlyWhenTheAppMayNotify() = runTest(dispatcher) {
+        val viewModel = HostsViewModel(FakeHostRepository(), session, settings)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+
+        viewModel.setBackgroundAlerts(enabled = true, mayNotify = false)
+        runCurrent()
+        assertFalse(settings.backgroundAlerts.value)
+        assertTrue(viewModel.uiState.value.alertsDenied)
+
+        viewModel.setBackgroundAlerts(enabled = true, mayNotify = true)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.backgroundAlerts)
+        assertFalse(viewModel.uiState.value.alertsDenied)
+
+        viewModel.setBackgroundAlerts(enabled = false)
+        runCurrent()
+        assertFalse(settings.backgroundAlerts.value)
+    }
+
+    @Test
     fun hostsDeletesASavedHost() = runTest(dispatcher) {
         val hosts = FakeHostRepository(listOf(TEST_HOST))
-        HostsViewModel(hosts, session).delete(TEST_HOST)
+        HostsViewModel(hosts, session, settings).delete(TEST_HOST)
         runCurrent()
 
         assertTrue(hosts.hosts.value.isEmpty())

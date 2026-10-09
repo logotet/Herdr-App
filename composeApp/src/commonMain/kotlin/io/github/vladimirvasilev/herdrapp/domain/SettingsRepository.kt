@@ -16,4 +16,8 @@ interface SettingsRepository {
 
     val homeView: StateFlow<HomeView>
     suspend fun setHomeView(view: HomeView)
+
+    /** Stay connected while the app is off the screen and notify about agents. Off by default. */
+    val backgroundAlerts: StateFlow<Boolean>
+    suspend fun setBackgroundAlerts(enabled: Boolean)
 }

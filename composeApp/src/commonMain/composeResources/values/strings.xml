@@ -64,6 +64,9 @@
     <string name="hosts_save">Save host</string>
     <string name="hosts_error_missing_fields">Host and token are required</string>
     <string name="hosts_error_invalid_qr">Invalid QR</string>
+    <string name="hosts_alerts_title">Stay connected and notify</string>
+    <string name="hosts_alerts_body">Keeps the connection while an agent is working or waiting, and tells you when one needs you or has finished.</string>
+    <string name="hosts_alerts_denied">Notifications are switched off for this app in the system settings.</string>
 
     <!-- Terminal -->
     <string name="terminal_no_agents">No agents. Back</string>

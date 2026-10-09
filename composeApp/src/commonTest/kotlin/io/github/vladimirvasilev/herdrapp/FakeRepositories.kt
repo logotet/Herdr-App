@@ -85,6 +85,12 @@ class FakeSettingsRepository : SettingsRepository {
     override suspend fun setHomeView(view: HomeView) {
         homeView.value = view
     }
+
+    override val backgroundAlerts = MutableStateFlow(false)
+
+    override suspend fun setBackgroundAlerts(enabled: Boolean) {
+        backgroundAlerts.value = enabled
+    }
 }
 
 /** Records every call as one line, for example "open w1:p1 94x39". */
