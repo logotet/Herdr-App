@@ -14,7 +14,6 @@ data class AttentionEvent(
     val kind: AttentionKind,
     val title: String,
     val workspaceLabel: String?,
-    val preview: String?,
 )
 
 private fun Pane.attentionKind(): AttentionKind? = when (agent?.status) {
@@ -40,7 +39,7 @@ fun attentionEvents(before: Session, after: Session): List<AttentionEvent> {
     return after.agents.mapNotNull { pane ->
         val kind = pane.attentionKind() ?: return@mapNotNull null
         if (was[pane.paneId] == kind) return@mapNotNull null
-        AttentionEvent(pane.paneId, kind, pane.title, workspaceLabels[pane.workspaceId], pane.agent?.preview)
+        AttentionEvent(pane.paneId, kind, pane.title, workspaceLabels[pane.workspaceId])
     }
 }
 

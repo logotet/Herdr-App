@@ -19,7 +19,7 @@ class PaneContextTest {
         workspaceId = "w1",
         tabId = tabId,
         title = "Fix tests",
-        agent = AgentState("claude", AgentStatus.IDLE, null),
+        agent = AgentState("claude", AgentStatus.IDLE),
         folder = folder,
     )
 

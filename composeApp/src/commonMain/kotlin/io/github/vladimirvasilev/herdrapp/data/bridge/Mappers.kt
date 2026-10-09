@@ -24,7 +24,7 @@ import io.github.vladimirvasilev.herdrapp.data.bridge.dto.AgentStatus as AgentSt
 internal fun BridgeSnapshot.toSession(): Session {
     // herdr reports the scroll position on the pane entry only, not on the agent entry.
     val scrollByPane = panes.associate { it.paneId to (it.scroll?.offsetFromBottom ?: 0) }
-    val agentPanes = agents.map { it.toPane(previews[it.paneId], scrollByPane[it.paneId] ?: 0, paneSizes[it.paneId]) }
+    val agentPanes = agents.map { it.toPane(scrollByPane[it.paneId] ?: 0, paneSizes[it.paneId]) }
     val agentByPane = agentPanes.associateBy { it.paneId }
     val tabLabels = tabs.associate { it.tabId to it.label }
     return Session(
@@ -37,12 +37,12 @@ internal fun BridgeSnapshot.toSession(): Session {
 
 private fun WorkspaceInfo.toWorkspace() = Workspace(id = workspaceId, number = number, label = label, paneCount = paneCount)
 
-private fun AgentInfo.toPane(preview: String?, scrolledBack: Int, pcSize: List<Int>?) = Pane(
+private fun AgentInfo.toPane(scrolledBack: Int, pcSize: List<Int>?) = Pane(
     paneId = paneId,
     workspaceId = workspaceId,
     tabId = tabId,
     title = terminalTitleStripped?.takeIf { it.isNotBlank() } ?: label?.takeIf { it.isNotBlank() } ?: agent ?: paneId,
-    agent = AgentState(kind = agent, status = agentStatus.toDomain(), preview = preview),
+    agent = AgentState(kind = agent, status = agentStatus.toDomain()),
     scrolledBackLines = scrolledBack.coerceAtLeast(0),
     pcGrid = pcSize.toGridSize(),
     folder = folderName(cwd),

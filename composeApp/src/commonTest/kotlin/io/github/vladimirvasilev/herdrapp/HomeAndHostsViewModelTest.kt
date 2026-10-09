@@ -63,7 +63,7 @@ class HomeAndHostsViewModelTest {
     fun homeShowsBlockedAgentsAndWorkspaceGroups() = runTest(dispatcher) {
         val viewModel = HomeViewModel(session, FakeHostRepository(listOf(TEST_HOST)), settings)
         backgroundScope.launch { viewModel.uiState.collect {} }
-        val blocked = Pane("w1:p1", "w1", null, "Fix tests", AgentState("claude", AgentStatus.BLOCKED, null))
+        val blocked = Pane("w1:p1", "w1", null, "Fix tests", AgentState("claude", AgentStatus.BLOCKED))
 
         session.session.value = Session(
             workspaces = listOf(Workspace("w1", 1, "Mobile", 1)),
@@ -135,8 +135,8 @@ class HomeAndHostsViewModelTest {
     @Test
     fun theAgentsViewListsAgentsOnlyInTheSessionOrder() = runTest(dispatcher) {
         val viewModel = home()
-        val blocked = Pane("w2:p1", "w2", null, "Fix tests", AgentState("claude", AgentStatus.BLOCKED, null))
-        val idle = Pane("w1:p1", "w1", null, "Pull tasks", AgentState("claude", AgentStatus.IDLE, null))
+        val blocked = Pane("w2:p1", "w2", null, "Fix tests", AgentState("claude", AgentStatus.BLOCKED))
+        val idle = Pane("w1:p1", "w1", null, "Pull tasks", AgentState("claude", AgentStatus.IDLE))
 
         session.session.value = Session(
             agents = listOf(blocked, idle),

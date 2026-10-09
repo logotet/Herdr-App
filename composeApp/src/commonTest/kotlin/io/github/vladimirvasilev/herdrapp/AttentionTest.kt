@@ -17,7 +17,7 @@ import kotlin.test.assertTrue
 
 class AttentionTest {
     private fun agent(paneId: String, status: AgentStatus) =
-        Pane(paneId, "w1", "w1:t1", "Fix tests", AgentState("claude", status, "last line"))
+        Pane(paneId, "w1", "w1:t1", "Fix tests", AgentState("claude", status))
 
     private fun session(vararg agents: Pane) = Session(
         workspaces = listOf(Workspace("w1", 1, "api", agents.size)),
@@ -32,7 +32,7 @@ class AttentionTest {
             after = session(agent("w1:p1", AgentStatus.BLOCKED)),
         )
 
-        assertEquals(listOf(AttentionEvent("w1:p1", AttentionKind.BLOCKED, "Fix tests", "api", "last line")), events)
+        assertEquals(listOf(AttentionEvent("w1:p1", AttentionKind.BLOCKED, "Fix tests", "api")), events)
     }
 
     @Test

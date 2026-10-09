@@ -335,12 +335,12 @@ class TerminalViewModelTest {
     }
 
     private fun scrolledBack(lines: Int, pcGrid: GridSize? = GridSize(144, 39)): Session {
-        val pane = Pane(PANE, "w1", null, "Fix tests", AgentState("claude", AgentStatus.IDLE, null), lines, pcGrid)
+        val pane = Pane(PANE, "w1", null, "Fix tests", AgentState("claude", AgentStatus.IDLE), lines, pcGrid)
         return Session(agents = listOf(pane), panes = listOf(pane))
     }
 
     private fun agent(paneId: String, workspaceId: String) =
-        Pane(paneId, workspaceId, null, "agent", AgentState("claude", AgentStatus.IDLE, null))
+        Pane(paneId, workspaceId, null, "agent", AgentState("claude", AgentStatus.IDLE))
 
     private fun shell(paneId: String, workspaceId: String) = Pane(paneId, workspaceId, null, "shell")
 
@@ -362,7 +362,7 @@ class TerminalViewModelTest {
     @Test
     fun theAgentPagesKeepTheirOrderWhenAnAgentStartsWaiting() = runTest(dispatcher) {
         val viewModel = viewModel(opened = "w1:p1")
-        val waiting = agent("w2:p1", "w2").copy(agent = AgentState("claude", AgentStatus.BLOCKED, null))
+        val waiting = agent("w2:p1", "w2").copy(agent = AgentState("claude", AgentStatus.BLOCKED))
         session.session.value = sessionOf(agent("w1:p1", "w1"), agent("w2:p1", "w2"))
         runCurrent()
 

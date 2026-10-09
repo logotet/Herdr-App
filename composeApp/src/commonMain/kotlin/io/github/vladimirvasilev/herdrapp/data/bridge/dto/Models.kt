@@ -34,7 +34,6 @@ data class BridgeSnapshot(
     @SerialName("focused_workspace_id") val focusedWorkspaceId: String? = null,
     @SerialName("focused_tab_id") val focusedTabId: String? = null,
     @SerialName("focused_pane_id") val focusedPaneId: String? = null,
-    val previews: Map<String, String> = emptyMap(),
     /** `[cols, rows]` of each pane on the PC. */
     @SerialName("pane_sizes") val paneSizes: Map<String, List<Int>> = emptyMap()
 )

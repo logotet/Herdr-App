@@ -22,8 +22,6 @@ data class AgentState(
     /** The agent program, for example "claude"; null when herdr could not tell. */
     val kind: String?,
     val status: AgentStatus,
-    /** The last few lines of the pane as plain text, when the bridge sent them. */
-    val preview: String?,
 )
 
 data class Pane(

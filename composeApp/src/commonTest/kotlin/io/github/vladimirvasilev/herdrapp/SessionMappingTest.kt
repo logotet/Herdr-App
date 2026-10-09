@@ -32,11 +32,10 @@ class SessionMappingTest {
     }
 
     @Test
-    fun agentCarriesItsKindTitleAndPreview() {
+    fun agentCarriesItsKindTitleAndFolder() {
         val pane = fixture().agents.first { it.paneId == "w2:p1" }
         assertEquals("claude", pane.agent?.kind)
         assertEquals("Implement websocket", pane.title)
-        assertEquals("Running tests", pane.agent?.preview)
         assertEquals("bridge", pane.folder)
     }
 
@@ -65,7 +64,7 @@ class SessionMappingTest {
 
     @Test
     fun inATabAgentsComeBeforeOtherPanesAndBlockedOnesFirst() {
-        fun agent(id: String, status: AgentStatus) = Pane(id, "w1", "w1:t1", id, AgentState("claude", status, null))
+        fun agent(id: String, status: AgentStatus) = Pane(id, "w1", "w1:t1", id, AgentState("claude", status))
         val session = Session(
             workspaces = listOf(Workspace("w1", 1, "Mobile", 3)),
             tabs = listOf(Tab("w1:t1", "w1", 1, "main")),
