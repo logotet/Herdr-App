@@ -61,20 +61,15 @@ internal class AgentNotifier(private val context: Context) {
         )
         val text = event.workspaceLabel?.let { getString(Res.string.notify_in_workspace, what, it) } ?: what
         val channel = if (event.kind == AttentionKind.BLOCKED) WAITING else FINISHED
-        // The lock screen shows this version: no terminal content.
-        val public = NotificationCompat.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_stat_agent)
-            .setContentTitle(event.title)
-            .setContentText(text)
+        // Only the pane's title and where it is: nothing from the terminal, so the lock screen
+        // may show it as it is.
         val notification = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_agent)
             .setContentTitle(event.title)
             .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(listOfNotNull(text, event.preview).joinToString("\n")))
             .setContentIntent(open(event.paneId))
             .setAutoCancel(true)
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-            .setPublicVersion(public.build())
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
         shown += event.paneId
         @Suppress("MissingPermission") // checked above with areNotificationsEnabled
