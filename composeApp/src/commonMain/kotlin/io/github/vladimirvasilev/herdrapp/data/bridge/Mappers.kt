@@ -45,6 +45,7 @@ private fun AgentInfo.toPane(preview: String?, scrolledBack: Int, pcSize: List<I
     agent = AgentState(kind = agent, status = agentStatus.toDomain(), preview = preview),
     scrolledBackLines = scrolledBack.coerceAtLeast(0),
     pcGrid = pcSize.toGridSize(),
+    folder = folderName(cwd),
 )
 
 private fun PaneInfo.toPane(pcSize: List<Int>?, tabLabel: String?) = Pane(
@@ -55,7 +56,19 @@ private fun PaneInfo.toPane(pcSize: List<Int>?, tabLabel: String?) = Pane(
     title = listOf(terminalTitleStripped, label, tabLabel).firstOrNull { !it.isNullOrBlank() } ?: paneId,
     scrolledBackLines = (scroll?.offsetFromBottom ?: 0).coerceAtLeast(0),
     pcGrid = pcSize.toGridSize(),
+    folder = folderName(cwd),
 )
+
+/**
+ * The last part of a working directory, whichever way the PC writes its paths. A user's home
+ * folder becomes "~": its real name is the account name, which says nothing about the work.
+ */
+internal fun folderName(cwd: String?): String? {
+    val parts = cwd.orEmpty().split('\\', '/').filter { it.isNotBlank() }
+    val name = parts.lastOrNull() ?: return null
+    val parent = parts.getOrNull(parts.size - 2)
+    return if (parent.equals("Users", ignoreCase = true) || parent == "home") "~" else name
+}
 
 private fun List<Int>?.toGridSize(): GridSize? =
     this?.takeIf { it.size == 2 && it[0] > 0 && it[1] > 0 }?.let { GridSize(cols = it[0], rows = it[1]) }

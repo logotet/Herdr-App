@@ -40,6 +40,8 @@ data class Pane(
     val scrolledBackLines: Int = 0,
     /** The pane's size on the PC, when herdr knows it (it may not for panes in hidden tabs). */
     val pcGrid: GridSize? = null,
+    /** The name of the folder the pane works in, without its path; null when herdr gave none. */
+    val folder: String? = null,
 )
 
 data class GridSize(val cols: Int, val rows: Int)

@@ -37,6 +37,7 @@ class SessionMappingTest {
         assertEquals("claude", pane.agent?.kind)
         assertEquals("Implement websocket", pane.title)
         assertEquals("Running tests", pane.agent?.preview)
+        assertEquals("bridge", pane.folder)
     }
 
     @Test
