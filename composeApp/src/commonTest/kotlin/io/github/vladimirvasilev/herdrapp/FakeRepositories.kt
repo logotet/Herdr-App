@@ -15,7 +15,7 @@ import io.github.vladimirvasilev.herdrapp.domain.TerminalFrame
 import io.github.vladimirvasilev.herdrapp.domain.TerminalRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 
 class FakeSessionRepository : SessionRepository {
     override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
@@ -102,7 +102,10 @@ class FakeTerminalRepository : TerminalRepository {
     var historyResult: HistoryResult = HistoryResult.Empty
     var scrollResult: CommandResult = CommandResult.Success
 
-    override fun frames(paneId: String): Flow<TerminalFrame> = emptyFlow()
+    /** The pane ids [frames] was collected for, one entry per collection. */
+    val frameCollections = mutableListOf<String>()
+
+    override fun frames(paneId: String): Flow<TerminalFrame> = flow { frameCollections += paneId }
 
     override suspend fun open(paneId: String, cols: Int, rows: Int) {
         calls += "open $paneId ${cols}x$rows"

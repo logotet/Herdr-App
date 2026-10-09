@@ -13,6 +13,7 @@ import io.github.vladimirvasilev.herdrapp.domain.SettingsRepository
 import io.github.vladimirvasilev.herdrapp.domain.StreamMode
 import io.github.vladimirvasilev.herdrapp.domain.TerminalFrame
 import io.github.vladimirvasilev.herdrapp.domain.TerminalRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -83,6 +85,8 @@ internal class TerminalViewModel(
     private val resumeControl = mutableSetOf<String>()
     /** True while the app is off the screen. Streams are stopped then and listed in [paused]. */
     private var hidden = false
+    /** Goes up each time the app returns to the screen. */
+    private val shownCount = MutableStateFlow(0)
     private val paused = mutableSetOf<String>()
     private val noScrollbackAt = mutableMapOf<String, TimeMark>()
     private val noticeJobs = mutableMapOf<String, Job>()
@@ -109,7 +113,12 @@ internal class TerminalViewModel(
         ),
     )
 
-    fun frames(paneId: String): Flow<TerminalFrame> = terminal.frames(paneId)
+    /**
+     * The pane's frames. Closing a stream ends the repository's flow for it, so the flow is asked
+     * for again every time the app returns to the screen and the streams are reopened.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun frames(paneId: String): Flow<TerminalFrame> = shownCount.flatMapLatest { terminal.frames(paneId) }
 
     /**
      * The pane's view reports its grid. The stream opens on the first report; later ones only
@@ -173,6 +182,7 @@ internal class TerminalViewModel(
     /** The app is back on screen: the streams stopped by [onHidden] are opened again as they were. */
     fun onShown() {
         hidden = false
+        if (paused.isNotEmpty()) shownCount.value++
         val returning = paused.toList()
         paused.clear()
         returning.forEach { paneId ->

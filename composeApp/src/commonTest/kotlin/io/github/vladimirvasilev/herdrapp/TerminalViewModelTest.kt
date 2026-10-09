@@ -304,6 +304,22 @@ class TerminalViewModelTest {
     }
 
     @Test
+    fun framesAreAskedForAgainWhenTheAppReturns() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        backgroundScope.launch { viewModel.frames(PANE).collect {} }
+        viewModel.onGridMeasured(PANE, 45, 30)
+        runCurrent()
+        assertEquals(listOf(PANE), terminal.frameCollections)
+
+        viewModel.onHidden()
+        viewModel.onShown()
+        runCurrent()
+
+        // The stream that was closed took its frames with it; the reopened one has new ones.
+        assertEquals(listOf(PANE, PANE), terminal.frameCollections)
+    }
+
+    @Test
     fun aPaneThatLeavesWhileTheAppIsHiddenIsNotClosedTwiceOrReopened() = runTest(dispatcher) {
         val viewModel = viewModel()
         viewModel.onGridMeasured(PANE, 45, 30)
