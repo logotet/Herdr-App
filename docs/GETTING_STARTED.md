@@ -76,6 +76,7 @@ The banner at the top of the app turns green and reads "Connected to" followed b
 **The list**
 - The tabs at the top choose **Workspaces** (every pane, by workspace and tab) or **Agents**
   (agent panes only, the ones waiting for you first).
+- An agent's card shows its status, and under the title where it is: workspace, tab and folder.
 - Pull down to refresh.
 - Long-press a pane, a tab name or a workspace to rename or close it. **+** on a workspace adds a
   tab; the round **+** at the bottom right adds a workspace.

@@ -14,6 +14,8 @@ The Android app id is `io.github.vladimirvasilev.herdrapp`; minSdk is 34.
 
 The tabs at the top choose between **Workspaces** (every pane, by workspace and tab) and **Agents** (only the panes that run an agent, the ones waiting for you first). Each tab shows how many it holds, and Agents shows a dot while one is waiting. The app remembers the choice.
 
+An agent's card shows the agent, the pane's title and its status. The line under it says where the agent is: workspace, tab and working folder in the Agents list, and only the folder under a workspace's own heading. A part that would repeat another, or a tab that has only a number for a name, is left out, and a home folder is shown as `~`.
+
 ## Changing the layout
 
 On the workspace list, long-press a pane, a tab name or a workspace to rename or close it. Tap **+** on a workspace to add a tab with a shell, and the round **+** at the bottom right to add a workspace in herdr's default folder. These are herdr's `rename`, `close` and `create` calls for panes, tabs and workspaces. Closing stops the programs on the PC and cannot be undone, so the app asks first.

@@ -8,6 +8,7 @@ import io.github.vladimirvasilev.herdrapp.domain.ConnectionState
 import io.github.vladimirvasilev.herdrapp.domain.HomeView
 import io.github.vladimirvasilev.herdrapp.domain.HostRepository
 import io.github.vladimirvasilev.herdrapp.domain.Pane
+import io.github.vladimirvasilev.herdrapp.domain.PaneContext
 import io.github.vladimirvasilev.herdrapp.domain.SavedHost
 import io.github.vladimirvasilev.herdrapp.domain.Session
 import io.github.vladimirvasilev.herdrapp.domain.SessionRepository
@@ -49,6 +50,8 @@ data class HomeUiState(
     val view: HomeView = HomeView.WORKSPACES,
     /** Every agent pane for the agents view, the blocked ones first. */
     val agents: List<Pane> = emptyList(),
+    /** Where each agent pane is, by pane id, for the line under its title. */
+    val contexts: Map<String, PaneContext> = emptyMap(),
     val dialog: HomeDialog? = null,
     /** Why the last change to the layout did not happen; shown for a moment. */
     val changeFailed: String? = null,
@@ -157,5 +160,6 @@ class HomeViewModel(
         needsYou = AgentOrganizer.needsYou(current.agents),
         groups = AgentOrganizer.groups(current),
         agents = current.agents,
+        contexts = AgentOrganizer.contexts(current),
     )
 }

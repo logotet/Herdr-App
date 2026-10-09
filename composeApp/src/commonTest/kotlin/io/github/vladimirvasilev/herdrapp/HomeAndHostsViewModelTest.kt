@@ -77,6 +77,7 @@ class HomeAndHostsViewModelTest {
         assertEquals("Desk", state.hostName)
         assertEquals(listOf(blocked), state.needsYou)
         assertEquals(listOf(blocked), state.groups.single().panes)
+        assertEquals("Mobile", state.contexts["w1:p1"]?.workspace)
     }
 
     private fun TestScope.home(): HomeViewModel {

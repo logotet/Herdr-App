@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import herdrapp.composeapp.generated.resources.*
 import io.github.vladimirvasilev.herdrapp.domain.Pane
+import io.github.vladimirvasilev.herdrapp.domain.PaneContext
 import io.github.vladimirvasilev.herdrapp.domain.Tab
 import io.github.vladimirvasilev.herdrapp.domain.WorkspaceGroup
 import io.github.vladimirvasilev.herdrapp.ui.components.StatusDot
@@ -46,6 +47,7 @@ private const val CHEVRON_COLLAPSED = 180f
 /** One workspace: its header, then its panes by tab unless it is collapsed. */
 internal fun LazyListScope.workspaceSection(
     group: WorkspaceGroup,
+    contexts: Map<String, PaneContext>,
     collapsed: Boolean,
     onToggle: () -> Unit,
     onOpen: (paneId: String) -> Unit,
@@ -74,19 +76,21 @@ internal fun LazyListScope.workspaceSection(
         if (tab != null && group.tabs.size > 1) {
             item(key = "tab-${tab.id}") { TabHeader(tab, onDialog) }
         }
-        items(tabGroup.panes, key = { it.paneId }) { pane -> PaneEntry(pane, onOpen, onDialog) }
+        items(tabGroup.panes, key = { it.paneId }) { pane ->
+            PaneEntry(pane, contexts[pane.paneId]?.line(withLocation = false), onOpen, onDialog)
+        }
     }
 }
 
 /** A pane of the list with its long-press menu: an agent as a card, anything else as a row. */
 @Composable
-internal fun PaneEntry(pane: Pane, onOpen: (String) -> Unit, onDialog: (HomeDialog) -> Unit) {
+internal fun PaneEntry(pane: Pane, context: String?, onOpen: (String) -> Unit, onDialog: (HomeDialog) -> Unit) {
     LongPressMenu(
         name = pane.title,
         onRename = { onDialog(HomeDialog.RenamePane(pane.paneId, pane.title)) },
         onClose = { onDialog(HomeDialog.ClosePane(pane.paneId, pane.title)) },
     ) { onLongPress ->
-        if (pane.agent != null) AgentRow(pane, onOpen, onLongPress) else PaneRow(pane, onOpen, onLongPress)
+        if (pane.agent != null) AgentRow(pane, context, onOpen, onLongPress) else PaneRow(pane, onOpen, onLongPress)
     }
 }
 

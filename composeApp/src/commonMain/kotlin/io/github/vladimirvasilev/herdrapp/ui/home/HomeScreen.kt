@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.vladimirvasilev.herdrapp.AppContainer
 import io.github.vladimirvasilev.herdrapp.domain.HomeView
+import io.github.vladimirvasilev.herdrapp.domain.Pane
 import io.github.vladimirvasilev.herdrapp.ui.components.ConnectionBanner
 import io.github.vladimirvasilev.herdrapp.ui.components.HerdrUnavailableBanner
 
@@ -110,17 +111,20 @@ internal fun HomeScreen(
             ) {
                 if (state.view == HomeView.AGENTS) {
                     if (state.agents.isEmpty()) item { EmptyAgents() }
-                    items(state.agents, key = { it.paneId }) { PaneEntry(it, onOpen, onDialog) }
+                    items(state.agents, key = { it.paneId }) { PaneEntry(it, state.placeOf(it), onOpen, onDialog) }
                     return@LazyColumn
                 }
                 if (state.needsYou.isNotEmpty()) {
                     item { SectionTitle(stringResource(Res.string.home_needs_you)) }
-                    items(state.needsYou, key = { "needs-${it.paneId}" }) { PaneEntry(it, onOpen, onDialog) }
+                    items(state.needsYou, key = { "needs-${it.paneId}" }) {
+                        PaneEntry(it, state.placeOf(it), onOpen, onDialog)
+                    }
                 }
                 state.groups.forEach { group ->
                     val id = group.workspace.id
                     workspaceSection(
                         group = group,
+                        contexts = state.contexts,
                         collapsed = id in collapsed,
                         onToggle = { collapsed = if (id in collapsed) collapsed - id else collapsed + id },
                         onOpen = onOpen,
@@ -137,6 +141,9 @@ internal fun HomeScreen(
         }
     }
 }
+
+/** Where a pane is, in full: for the lists that show it outside its workspace's section. */
+private fun HomeUiState.placeOf(pane: Pane): String? = contexts[pane.paneId]?.line(withLocation = true)
 
 @Composable
 private fun EmptyHosts(onHosts: () -> Unit) {
