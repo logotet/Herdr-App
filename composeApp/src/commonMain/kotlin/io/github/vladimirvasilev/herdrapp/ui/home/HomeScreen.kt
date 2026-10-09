@@ -77,46 +77,61 @@ internal fun HomeScreen(
             EmptyHosts(onHosts)
             return@Column
         }
-        LazyColumn(
-            Modifier.fillMaxSize().pointerInput(Unit) {
-                var drag = 0f
-                detectDragGestures(
-                    onDragEnd = {
-                        if (drag > 120f) currentOnRefresh()
-                        drag = 0f
-                    },
-                ) { change, amount ->
-                    change.consume()
-                    drag += amount.y
+        HomeHeader(
+            view = state.view,
+            workspaceCount = state.groups.size,
+            agentCount = state.agents.size,
+            agentWaiting = state.needsYou.isNotEmpty(),
+            onView = onView,
+        )
+        val workspaces = state.view == HomeView.WORKSPACES
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(
+                Modifier.fillMaxSize().pointerInput(Unit) {
+                    var drag = 0f
+                    detectDragGestures(
+                        onDragEnd = {
+                            if (drag > 120f) currentOnRefresh()
+                            drag = 0f
+                        },
+                    ) { change, amount ->
+                        change.consume()
+                        drag += amount.y
+                    }
+                },
+                // Room under the last workspace, so it can be scrolled clear of the floating button.
+                contentPadding = PaddingValues(
+                    start = 12.dp,
+                    top = 12.dp,
+                    end = 12.dp,
+                    bottom = if (workspaces) 88.dp else 12.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (state.view == HomeView.AGENTS) {
+                    if (state.agents.isEmpty()) item { EmptyAgents() }
+                    items(state.agents, key = { it.paneId }) { PaneEntry(it, onOpen, onDialog) }
+                    return@LazyColumn
                 }
-            },
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item {
-                HomeHeader(
-                    view = state.view,
-                    onView = onView,
-                    onNewWorkspace = { onDialog(HomeDialog.NewWorkspace) },
-                )
+                if (state.needsYou.isNotEmpty()) {
+                    item { SectionTitle(stringResource(Res.string.home_needs_you)) }
+                    items(state.needsYou, key = { "needs-${it.paneId}" }) { PaneEntry(it, onOpen, onDialog) }
+                }
+                state.groups.forEach { group ->
+                    val id = group.workspace.id
+                    workspaceSection(
+                        group = group,
+                        collapsed = id in collapsed,
+                        onToggle = { collapsed = if (id in collapsed) collapsed - id else collapsed + id },
+                        onOpen = onOpen,
+                        onDialog = onDialog,
+                    )
+                }
             }
-            if (state.view == HomeView.AGENTS) {
-                if (state.agents.isEmpty()) item { EmptyAgents() }
-                items(state.agents, key = { it.paneId }) { PaneEntry(it, onOpen, onDialog) }
-                return@LazyColumn
-            }
-            if (state.needsYou.isNotEmpty()) {
-                item { SectionTitle(stringResource(Res.string.home_needs_you)) }
-                items(state.needsYou, key = { "needs-${it.paneId}" }) { PaneEntry(it, onOpen, onDialog) }
-            }
-            state.groups.forEach { group ->
-                val id = group.workspace.id
-                workspaceSection(
-                    group = group,
-                    collapsed = id in collapsed,
-                    onToggle = { collapsed = if (id in collapsed) collapsed - id else collapsed + id },
-                    onOpen = onOpen,
-                    onDialog = onDialog,
+            if (workspaces) {
+                NewWorkspaceButton(
+                    onClick = { onDialog(HomeDialog.NewWorkspace) },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
                 )
             }
         }

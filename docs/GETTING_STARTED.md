@@ -74,11 +74,11 @@ The banner at the top of the app turns green and reads "Connected to" followed b
 ## 7. Daily use
 
 **The list**
-- The switch at the top chooses **Workspaces** (every pane, by workspace and tab) or **Agents**
+- The tabs at the top choose **Workspaces** (every pane, by workspace and tab) or **Agents**
   (agent panes only, the ones waiting for you first).
 - Pull down to refresh.
 - Long-press a pane, a tab name or a workspace to rename or close it. **+** on a workspace adds a
-  tab; **+** at the top adds a workspace.
+  tab; the round **+** at the bottom right adds a workspace.
 
 **A pane**
 - It opens read-only and live. Swipe sideways for the next pane.
