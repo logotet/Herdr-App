@@ -11,7 +11,6 @@ import herdrapp.composeapp.generated.resources.Res
 import herdrapp.composeapp.generated.resources.notify_channel_connection
 import herdrapp.composeapp.generated.resources.notify_channel_finished
 import herdrapp.composeapp.generated.resources.notify_channel_waiting
-import herdrapp.composeapp.generated.resources.notify_connected_body
 import herdrapp.composeapp.generated.resources.notify_connected_title
 import herdrapp.composeapp.generated.resources.notify_finished
 import herdrapp.composeapp.generated.resources.notify_in_workspace
@@ -46,7 +45,6 @@ internal class AgentNotifier(private val context: Context) {
         NotificationCompat.Builder(context, CONNECTION)
             .setSmallIcon(R.drawable.ic_stat_agent)
             .setContentTitle(getString(Res.string.notify_connected_title, bridgeName))
-            .setContentText(getString(Res.string.notify_connected_body))
             .setContentIntent(open(paneId = null))
             .setOngoing(true)
             .build()

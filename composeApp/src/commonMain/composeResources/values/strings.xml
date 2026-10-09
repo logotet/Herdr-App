@@ -68,7 +68,6 @@
     <string name="notify_channel_waiting">Agent is waiting</string>
     <string name="notify_channel_finished">Agent finished</string>
     <string name="notify_connected_title">Connected to %1$s</string>
-    <string name="notify_connected_body">You will be told when an agent needs you or has finished.</string>
     <string name="notify_waiting">Waiting for you</string>
     <string name="notify_finished">Finished</string>
     <string name="notify_in_workspace">%1$s in %2$s</string>
